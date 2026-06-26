@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../widget/Settings/Notifications/NotificationHeader.dart';
+import '../../widget/Settings/Notifications/NotificationFilters.dart';
+import '../../widget/Settings/Notifications/NotificationList.dart';
+
+import '../../../controller/NotificationsController.dart';
+
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Get.delete<NotificationsController>();
+    Get.put(NotificationsController());
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 48,
+          vertical: isMobile ? 16 : 32,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const NotificationHeader(),
+            const SizedBox(height: 32),
+            const NotificationFilters(),
+            const SizedBox(height: 32),
+            const NotificationList(),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+}
