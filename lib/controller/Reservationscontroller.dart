@@ -490,6 +490,22 @@ class Reservationscontroller extends GetxController {
     }
   }
 
+  void cleardata() {
+    username.clear();
+    phone.clear();
+    date.clear();
+    price.clear();
+    deposit.clear();
+    remainingamount.clear();
+    numberofmen.clear();
+    numberOfwomen.clear();
+    note.clear();
+    BookingBeriod = null;
+    typeOfPartyUuid = null;
+    selectedDishes.clear();
+    selectedServices.clear();
+  }
+
   // عرض البيانات
   Future<void> addReservation() async {
     if (!formState.currentState!.validate()) {
@@ -545,20 +561,7 @@ class Reservationscontroller extends GetxController {
       showSnackbar('success'.tr, 'added_successfully'.tr, Colors.green);
 
       fetchInitialData();
-
-      username.clear();
-      phone.clear();
-      date.clear();
-      price.clear();
-      deposit.clear();
-      remainingamount.clear();
-      numberofmen.clear();
-      numberOfwomen.clear();
-      note.clear();
-      BookingBeriod = null;
-      typeOfPartyUuid = null;
-      selectedDishes.clear();
-      selectedServices.clear();
+      cleardata();
     } else {
       showSnackbar('error'.tr, 'failed_to_save_reservation'.tr, Colors.red);
     }
@@ -650,19 +653,7 @@ class Reservationscontroller extends GetxController {
         Colors.green,
       );
       fetchInitialData();
-      username.clear();
-      phone.clear();
-      date.clear();
-      price.clear();
-      deposit.clear();
-      remainingamount.clear();
-      numberofmen.clear();
-      numberOfwomen.clear();
-      note.clear();
-      BookingBeriod = null;
-      typeOfPartyUuid = null;
-      selectedDishes.clear();
-      selectedServices.clear();
+      cleardata();
     } else {
       showSnackbar('error'.tr, 'failed_to_update_reservation'.tr, Colors.red);
     }

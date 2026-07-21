@@ -42,6 +42,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                 controllerRe.searchQuery.value = value;
               },
               onAddReservation: () {
+                controllerRe.cleardata();
                 controllerRe.fetchInitialData();
                 Get.dialog(
                   const ReservationFormDialog(),

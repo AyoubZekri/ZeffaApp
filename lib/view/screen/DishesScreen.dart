@@ -36,6 +36,8 @@ class DishesScreen extends StatelessWidget {
               // Header Widget
               DishesHeader(
                 onAddPressed: () {
+                  ctrl.clearFields();
+                  ctrl.viewCategory();
                   Get.dialog(const DishFormDialog(), barrierDismissible: true);
                 },
               ),

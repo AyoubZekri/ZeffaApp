@@ -43,6 +43,7 @@ class CalendarScreen extends StatelessWidget {
                     children: [
                       CalendarHeader(
                         onAddPressed: () {
+                          ctrl.clearFields();
                           Get.dialog(
                             const CalendarFormDialog(),
                             barrierDismissible: true,
@@ -92,6 +93,7 @@ class CalendarScreen extends StatelessWidget {
                         children: [
                           CalendarHeader(
                             onAddPressed: () {
+                              ctrl.clearFields();
                               Get.dialog(
                                 const CalendarFormDialog(),
                                 barrierDismissible: true,

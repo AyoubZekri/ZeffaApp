@@ -7,6 +7,11 @@ import 'package:zeffa/data/datasource/Remote/Auth/logen_data.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:zeffa/LinkApi.dart';
+import 'package:zeffa/core/class/SyncServer.dart';
 
 import '../../data/datasource/Remote/Auth/Forgetpassword/checkemail.dart';
 
@@ -63,7 +68,6 @@ class Logincontroller extends GetxController {
             response["data"]["user"]["user"]["parent"]["numperPhone"],
           );
 
-
           if (response["data"]["user"]["user"]["role_id"] == null) {
             Get.offAllNamed(Approutes.cannotUsePhone);
             return;
@@ -103,10 +107,17 @@ class Logincontroller extends GetxController {
           }
 
           if (response["data"]["user"]["user"]["parent"]["image"] != null) {
-            myServices.sharedPreferences!.setString(
-              "image",
-              response["data"]["user"]["user"]["parent"]["image"],
-            );
+            String imageUrl =
+                response["data"]["user"]["user"]["parent"]["image"];
+            String localPath = "";
+            if (imageUrl.isNotEmpty) {
+              String fileName = imageUrl.split("/").last;
+              String fullUrl = "${Applink.image}/storage/$imageUrl";
+              localPath = await downloadAndCacheImage(fullUrl, fileName);
+            }
+            myServices.sharedPreferences!.setString("image", localPath);
+          } else {
+            myServices.sharedPreferences!.setString("image", "");
           }
 
           myServices.sharedPreferences!.setInt(
@@ -153,6 +164,8 @@ class Logincontroller extends GetxController {
           }
 
           if (status == 4) {
+            final sync = SyncService();
+            await sync.syncAll();
             Get.offAllNamed(Approutes.HomeScreen);
             return;
           }
@@ -181,6 +194,8 @@ class Logincontroller extends GetxController {
               bool isValid = today.isBefore(expireDate);
               print("================$isValid");
               if (isValid) {
+                final sync = SyncService();
+                await sync.syncAll();
                 Get.offNamed(Approutes.HomeScreen, arguments: {"fromlogin": 1});
               } else {
                 Get.offAllNamed(Approutes.activateAccount);
@@ -245,6 +260,32 @@ class Logincontroller extends GetxController {
 
   //   update();
   // }
+
+  Future<String> downloadAndCacheImage(String imageUrl, String fileName) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = "${directory.path}/$fileName";
+
+      File file = File(filePath);
+
+      await file.parent.create(recursive: true);
+
+      if (await file.exists()) {
+        return filePath;
+      }
+
+      final response = await http.get(Uri.parse(imageUrl));
+
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        return filePath;
+      }
+
+      return "";
+    } catch (e) {
+      return "";
+    }
+  }
 
   @override
   void onInit() {
