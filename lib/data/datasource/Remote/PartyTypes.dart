@@ -104,6 +104,30 @@ class PartyTypes {
     }
   }
 
+  /// Save the expenses template suggested for the next reservation of this type
+  Future<bool> updateDefaultExpenses(String uuid, String? defaultExpenses) async {
+    try {
+      final data = {
+        "default_expenses": defaultExpenses,
+        "updated_at": DateTime.now().toIso8601String(),
+      };
+
+      final result = await _db.update("party_types", data, "uuid = ?", [uuid]);
+
+      if (result > 0) {
+        await _syncService.addToQueue("party_types", uuid, "update", {
+          "uuid": uuid,
+          ...data,
+        });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("❌ updateDefaultExpenses error: $e");
+      return false;
+    }
+  }
+
   Future<bool> Deletedata(String uuid) async {
     try {
       final check = await _db.readData(

@@ -25,6 +25,17 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
   bool get exceedsPrice => newTotalDeposit > reservationPrice;
 
   @override
+  void initState() {
+    super.initState();
+    // Start with the remaining amount in the new payment field
+    final remaining = reservationPrice - currentDeposit;
+    if (remaining > 0) {
+      newPayment = remaining;
+      paymentController.text = remaining.toInt().toString();
+    }
+  }
+
+  @override
   void dispose() {
     paymentController.dispose();
     super.dispose();

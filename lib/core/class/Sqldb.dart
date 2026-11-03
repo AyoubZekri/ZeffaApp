@@ -16,7 +16,7 @@ class SQLDB {
     }
   }
 
-  int get version => 1;
+  int get version => 5;
 
   Future<Database> intialDb() async {
     String dataBais;
@@ -38,6 +38,39 @@ class SQLDB {
 
   Future<void> _onUpgrade(Database db, int oldversion, int newVersion) async {
     print("_onUpgrade ===============");
+    if (oldversion < 2) {
+      // ربط المصاريف بالحجز + المصاريف المحفوظة لكل نوع حفلة
+      await db.execute("ALTER TABLE expenses ADD COLUMN reservation_uuid TEXT");
+      await db.execute(
+        "ALTER TABLE party_types ADD COLUMN default_expenses TEXT",
+      );
+    }
+    if (oldversion < 3) {
+      // القاعات الإضافية + ربط الحجز بالقاعة (فارغ = قاعة الحساب)
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS halls(
+        id INTEGER PRIMARY KEY,
+        uuid TEXT UNIQUE,
+        user_id INTEGER,
+        name TEXT,
+        phone1 TEXT,
+        phone2 TEXT,
+        created_at TEXT,
+        updated_at TEXT
+      )
+      ''');
+      await db.execute("ALTER TABLE reservations ADD COLUMN hall_uuid TEXT");
+    }
+    if (oldversion < 4) {
+      // موقع القاعة (اختياري)
+      await db.execute("ALTER TABLE halls ADD COLUMN address TEXT");
+    }
+    if (oldversion < 5) {
+      // طريقة حساب سعر الخدمة: 0 = ثابت، 1 = لكل شخص
+      await db.execute(
+        "ALTER TABLE additional_services ADD COLUMN price_type INTEGER DEFAULT 0",
+      );
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -57,6 +90,7 @@ class SQLDB {
         seasonal_price REAL,
         guest_pricing_tiers TEXT,
         icon TEXT,
+        default_expenses TEXT,
         created_at TEXT,
         updated_at TEXT
       )
@@ -76,6 +110,7 @@ class SQLDB {
         booking_date TEXT,
         booking_period INTEGER,
         type_of_party_uuid TEXT,
+        hall_uuid TEXT,
         price REAL,
         notes TEXT,
         deposit REAL,
@@ -143,6 +178,7 @@ class SQLDB {
         user_id INTEGER,
         name TEXT,
         price REAL,
+        price_type INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT
       )
@@ -183,6 +219,23 @@ class SQLDB {
       ''');
 
     // ==============================
+    // halls (extra halls of the account)
+    // ==============================
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS halls(
+        id INTEGER PRIMARY KEY,
+        uuid TEXT UNIQUE,
+        user_id INTEGER,
+        name TEXT,
+        phone1 TEXT,
+        phone2 TEXT,
+        address TEXT,
+        created_at TEXT,
+        updated_at TEXT
+      )
+      ''');
+
+    // ==============================
     // expenses
     // ==============================
     batch.execute('''
@@ -190,6 +243,7 @@ class SQLDB {
         id INTEGER PRIMARY KEY,
         uuid TEXT UNIQUE,
         user_id INTEGER,
+        reservation_uuid TEXT,
         type INTEGER,
         description TEXT,
         value REAL,

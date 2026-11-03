@@ -361,6 +361,7 @@ class SyncService {
 
     print('start_syncing'.tr);
 
+    await pushQueue("halls");
     await pushQueue("party_types");
     await pushQueue("cat_dishes");
     await pushQueue("dishes");
@@ -375,6 +376,7 @@ class SyncService {
     await pushQueue("terms");
     await pushQueue("terms_content");
 
+    await pullFromServer("halls");
     await pullFromServer("party_types");
     await pullFromServer("cat_dishes");
     await pullFromServer("dishes");

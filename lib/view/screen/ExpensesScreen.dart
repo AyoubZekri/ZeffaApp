@@ -244,6 +244,7 @@ class ExpensesScreen extends StatelessWidget {
                         totalPages: ctrl.totalPages,
                         totalItems: ctrl.filteredExpenses.length,
                         itemsPerPage: ctrl.itemsPerPage,
+                        reservationLabel: ctrl.reservationName,
                         onPageChanged: (page) {
                           ctrl.goToPage(page);
                         },

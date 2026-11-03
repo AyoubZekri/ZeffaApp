@@ -191,6 +191,46 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> {
                         }),
                         const SizedBox(height: 20),
 
+                        // Linked reservation (optional)
+                        Text(
+                          'linked_reservation'.tr,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Obx(() {
+                          return CustemDropDownField<String?>(
+                            value: ctrl.formReservationUuid.value,
+                            hint: 'general_expense_no_reservation'.tr,
+                            onChanged: (val) {
+                              ctrl.formReservationUuid.value = val;
+                            },
+                            items: [
+                              DropdownMenuItem<String?>(
+                                value: null,
+                                child: Text(
+                                  'general_expense_no_reservation'.tr,
+                                  style: TextStyle(color: textColor),
+                                ),
+                              ),
+                              ...ctrl.allReservations.map(
+                                (res) => DropdownMenuItem<String?>(
+                                  value: res['uuid']?.toString(),
+                                  child: Text(
+                                    ctrl.reservationLabel(res['uuid']?.toString()) ?? '',
+                                    style: TextStyle(color: textColor),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                        const SizedBox(height: 20),
+
                         // Date
                         CustemTextField(
                           controller: ctrl.dateController,

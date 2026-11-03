@@ -4,6 +4,7 @@ import '../../controller/ServicesController.dart';
 import '../../core/constant/AppTheme.dart';
 import '../../core/constant/Colorapp.dart';
 import '../../core/functions/dialogDelete.dart';
+import '../../core/functions/print_services.dart';
 import '../widget/services/ServiceFormDialog.dart';
 
 class ServicesScreen extends StatelessWidget {
@@ -53,6 +54,37 @@ class ServicesScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              generateAndPrintServicesPDF(ctrl.allServices);
+                            },
+                            icon: const Icon(Icons.print_rounded, size: 20),
+                            label: Text(
+                              isArabic ? 'طباعة الخدمات' : 'Print Services',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColor.primaryPurple,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(
+                                  color: AppColor.primaryPurple,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -111,31 +143,65 @@ class ServicesScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            ctrl.clearForm();
-                            Get.dialog(
-                              const ServiceFormDialog(),
-                              barrierDismissible: true,
-                            );
-                          },
-                          icon: const Icon(Icons.add_rounded, size: 20),
-                          label: Text(
-                            'add_service'.tr,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColor.primaryPurple,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                generateAndPrintServicesPDF(ctrl.allServices);
+                              },
+                              icon: const Icon(Icons.print_rounded, size: 20),
+                              label: Text(
+                                isArabic ? 'طباعة الخدمات' : 'Print Services',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColor.primaryPurple,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(
+                                    color: AppColor.primaryPurple,
+                                  ),
+                                ),
+                              ),
                             ),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                ctrl.clearForm();
+                                Get.dialog(
+                                  const ServiceFormDialog(),
+                                  barrierDismissible: true,
+                                );
+                              },
+                              icon: const Icon(Icons.add_rounded, size: 20),
+                              label: Text(
+                                'add_service'.tr,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColor.primaryPurple,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
@@ -293,7 +359,7 @@ class ServicesScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        "${service.price?.toInt()} DA",
+                                        "${service.price?.toInt()} DA${service.isPerPerson ? ' / ' + 'per_person'.tr : ''}",
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,

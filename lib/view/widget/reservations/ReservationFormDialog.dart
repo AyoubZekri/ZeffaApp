@@ -8,6 +8,7 @@ import '../../../core/functions/valiedinput.dart';
 import '../CustemDropDownField.dart';
 import '../CustemTextField.dart';
 import 'ReservationDatePickerDialog.dart';
+import 'ReservationExpenseDialog.dart';
 import '../../../controller/CalendarController.dart';
 
 enum ReservationFormMode { add, edit }
@@ -171,6 +172,16 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                         textColor,
                       ),
                       const SizedBox(height: 16),
+                      // Hall: only when the account has several halls, chosen before the date
+                      GetBuilder<Reservationscontroller>(
+                        builder: (_) {
+                          if (!ctrl.hasMultipleHalls) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildHallDropdownField(textColor),
+                          );
+                        },
+                      ),
                       // Date field
                       CustemTextField(
                         controller: ctrl.date,
@@ -179,6 +190,10 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                         icon: Icons.calendar_today_outlined,
                         readOnly: true,
                         onTap: () async {
+                          if (ctrl.hasMultipleHalls && !ctrl.hallSelected) {
+                            showSnackbar('warning'.tr, 'please_select_hall'.tr, Colors.orange);
+                            return;
+                          }
                           final parsedDate = ctrl.date.text.isNotEmpty
                               ? DateTime.tryParse(ctrl.date.text.replaceAll('/', '-'))
                               : null;
@@ -202,7 +217,7 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                               excludeUuid: isEdit ? widget.reservationUuid : null,
                             );
                             if (ctrl.BookingBeriod != null) {
-                              final stillAvailable = availablePeriods.any((element) => element['key'] == ctrl.BookingBeriod);
+                              final stillAvailable = availablePeriods.any((element) => element['key'].toString() == ctrl.BookingBeriod);
                               if (!stillAvailable) {
                                 setState(() {
                                   ctrl.BookingBeriod = null;
@@ -248,6 +263,8 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                               ctrl.typeOfPartyUuid = val;
                               ctrl.calculatePrice();
                             });
+                            // Offer the expenses saved for this type (new reservations only)
+                            if (!isEdit) ctrl.suggestSavedExpenses();
                           },
                           isDark: isDark,
                           inputFillColor: inputFillColor,
@@ -340,8 +357,9 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                           onChanged: (val) {
                             ctrl.calculateRemaining();
                           },
+                          // Empty paid amount is allowed and saved as 0
                           validator: (val) {
-                            return validInput(val!, 1000, 1, "number");
+                            return validInput(val!, 1000, 1, "number", empty: true);
                           },
                         ),
                         CustemTextField(
@@ -470,7 +488,7 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                               return FilterChip(
                                 selected: isSelected,
                                 label: Text(
-                                  "${service.name} (${service.price?.toInt()} DA)",
+                                  "${service.name} (${service.price?.toInt()} DA${service.isPerPerson ? ' / ' + 'per_person'.tr : ''})",
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -509,15 +527,136 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
                                   double currentPrice = double.tryParse(ctrl.price.text) ?? 0.0;
                                   if (selected) {
                                     ctrl.selectedServices.add(service.uuid!);
-                                    ctrl.price.text = (currentPrice + (service.price ?? 0.0)).toInt().toString();
+                                    ctrl.price.text = (currentPrice + service.costFor(ctrl.formGuests)).toInt().toString();
                                   } else {
                                     ctrl.selectedServices.remove(service.uuid!);
-                                    ctrl.price.text = (currentPrice - (service.price ?? 0.0)).toInt().toString();
+                                    ctrl.price.text = (currentPrice - service.costFor(ctrl.formGuests)).toInt().toString();
                                   }
                                   ctrl.calculateRemaining(); // Update remaining amount
                                 },
                               );
                             }).toList(),
+                          );
+                        }),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // ═══════════════════════════════════════
+                      // Section 5.6: Reservation Expenses (optional)
+                      // ═══════════════════════════════════════
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSectionHeader(
+                              Icons.receipt_long_outlined,
+                              'reservation_expenses_optional'.tr,
+                              textColor,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final result = await Get.dialog<Map<String, dynamic>>(
+                                const ReservationExpenseDialog(),
+                              );
+                              if (result != null) {
+                                ctrl.reservationExpenses.add(result);
+                              }
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: Text('add_expense'.tr),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColor.primaryPurple,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Obx(() {
+                          if (ctrl.reservationExpenses.isEmpty) {
+                            return Text(
+                              'no_reservation_expenses'.tr,
+                              style: TextStyle(fontSize: 13, color: subtitleColor),
+                            );
+                          }
+                          return Column(
+                            children: [
+                              ...ctrl.reservationExpenses.asMap().entries.map((entry) {
+                                final i = entry.key;
+                                final e = entry.value;
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const Icon(
+                                    Icons.receipt_outlined,
+                                    color: AppColor.primaryPurple,
+                                  ),
+                                  title: Text(
+                                    e['description']?.toString() ?? '',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    _expenseCategoryLabel(e['type'] as int?),
+                                    style: TextStyle(fontSize: 12, color: subtitleColor),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "${((e['value'] as num?) ?? 0).toInt()} DA",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColor.primaryPurple,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.edit_outlined, size: 20, color: subtitleColor),
+                                        onPressed: () async {
+                                          final result = await Get.dialog<Map<String, dynamic>>(
+                                            ReservationExpenseDialog(initial: e),
+                                          );
+                                          if (result != null) {
+                                            ctrl.reservationExpenses[i] = result;
+                                          }
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                        onPressed: () => ctrl.reservationExpenses.removeAt(i),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              Divider(color: borderColor),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'total_expenses'.tr,
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                  ),
+                                  Text(
+                                    "${ctrl.reservationExpensesTotal.toInt()} DA",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColor.primaryPurple,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           );
                         }),
                       ),
@@ -616,6 +755,19 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
   // Builder Helpers
   // ═══════════════════════════════════════════════════════
 
+  String _expenseCategoryLabel(int? type) {
+    switch (type) {
+      case 1:
+        return 'workers'.tr;
+      case 4:
+        return 'maintenance'.tr;
+      case 2:
+        return 'cleaning_materials'.tr;
+      default:
+        return 'other_expenses'.tr;
+    }
+  }
+
   Widget _buildSectionHeader(IconData icon, String title, Color textColor) {
     return Row(
       children: [
@@ -635,6 +787,78 @@ class _ReservationFormDialogState extends State<ReservationFormDialog> {
             fontWeight: FontWeight.bold,
             color: textColor,
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Hall dropdown. Changing the hall re-checks the chosen date / period.
+  Widget _buildHallDropdownField(Color textColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'hall'.tr,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        CustemDropDownField<String>(
+          hint: 'select_hall'.tr,
+          // '' = account hall
+          value: ctrl.hallSelected ? (ctrl.hallUuid ?? '') : null,
+          items: ctrl.dbHalls
+              .map(
+                (hall) => DropdownMenuItem<String>(
+                  value: hall.uuid ?? '',
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.meeting_room_outlined,
+                        size: 18,
+                        color: AppColor.primaryPurple,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          (hall.name?.isNotEmpty ?? false)
+                              ? hall.name!
+                              : 'account_hall'.tr,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14, color: textColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (val) {
+            setState(() {
+              ctrl.hallUuid = (val == null || val.isEmpty) ? null : val;
+              ctrl.hallSelected = true;
+
+              // Date / period may be taken in the new hall
+              if (ctrl.date.text.isNotEmpty) {
+                final available = ctrl.getAvailablePeriodsForDate(
+                  ctrl.date.text,
+                  excludeUuid: isEdit ? widget.reservationUuid : null,
+                );
+                if (available.isEmpty) {
+                  ctrl.date.clear();
+                  ctrl.BookingBeriod = null;
+                } else if (ctrl.BookingBeriod != null &&
+                    !available.any(
+                      (p) => p['key'].toString() == ctrl.BookingBeriod,
+                    )) {
+                  ctrl.BookingBeriod = null;
+                }
+              }
+            });
+          },
         ),
       ],
     );

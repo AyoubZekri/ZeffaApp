@@ -5,6 +5,7 @@ import '../../../core/constant/Colorapp.dart';
 import '../../../core/constant/AppTheme.dart';
 import '../../../data/model/ReservationModel.dart';
 import '../../../core/services/Services.dart';
+import 'ReservationActionsMenu.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ReservationsTable extends StatelessWidget {
@@ -15,6 +16,9 @@ class ReservationsTable extends StatelessWidget {
   final ValueChanged<ReservationModel>? onPrint;
   final ValueChanged<ReservationModel>? onAddPayment;
   final ValueChanged<ReservationModel>? onEditGuests;
+  final ValueChanged<ReservationModel>? onExpenses;
+  // Hall name of a reservation; null when the account has a single hall
+  final String Function(ReservationModel)? hallName;
 
   const ReservationsTable({
     super.key,
@@ -25,6 +29,8 @@ class ReservationsTable extends StatelessWidget {
     this.onPrint,
     this.onAddPayment,
     this.onEditGuests,
+    this.onExpenses,
+    this.hallName,
   });
 
   @override
@@ -217,7 +223,7 @@ class ReservationsTable extends StatelessWidget {
           ),
           const Spacer(),
           SizedBox(
-            width: 280,
+            width: 100,
             child: Center(child: Text('actions'.tr, style: style)),
           ),
         ],
@@ -340,13 +346,19 @@ class ReservationsTable extends StatelessWidget {
           ),
           SizedBox(
             width: 180,
-            child: Text(
-              item.bookingDate,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.bookingDate,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                _buildHallLine(item),
+              ],
             ),
           ),
 
@@ -388,50 +400,18 @@ class ReservationsTable extends StatelessWidget {
           ),
           const Spacer(),
           SizedBox(
-            width: 280,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (onAddPayment != null)
-                  _buildActionIcon(
-                    context,
-                    Icons.payments_outlined,
-                    Colors.green,
-                    () => onAddPayment!(item),
-                  ),
-                if (onEditGuests != null)
-                  _buildActionIcon(
-                    context,
-                    Icons.group_outlined,
-                    Colors.blue,
-                    () => onEditGuests!(item),
-                  ),
-                if (onPrint != null)
-                  _buildActionIcon(
-                    context,
-                    Icons.print_outlined,
-                    Colors.grey,
-                    () => onPrint!(item),
-                  ),
-                _buildActionIcon(
-                  context,
-                  Icons.visibility_outlined,
-                  AppColor.primaryPurple,
-                  () => onView?.call(item),
+            width: 100,
+            child: Center(
+              child: ReservationActionsMenu(
+                  reservation: item,
+                  onView: onView,
+                  onExpenses: onExpenses,
+                  onAddPayment: onAddPayment,
+                  onEditGuests: onEditGuests,
+                  onPrint: onPrint,
+                  onEdit: onEdit,
+                  onDelete: onDelete,
                 ),
-                _buildActionIcon(
-                  context,
-                  Icons.edit_outlined,
-                  Colors.amber.shade700,
-                  () => onEdit?.call(item),
-                ),
-                _buildActionIcon(
-                  context,
-                  Icons.delete_outline_rounded,
-                  Colors.red,
-                  () => onDelete?.call(item),
-                ),
-              ],
             ),
           ),
         ],
@@ -439,27 +419,37 @@ class ReservationsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildActionIcon(
-    BuildContext context,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: colors.inputFillColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: color, size: 20),
+  /// Small "hall" line shown under the date when there are several halls
+  Widget _buildHallLine(ReservationModel item) {
+    if (hallName == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.meeting_room_outlined,
+            size: 14,
+            color: AppColor.primaryPurple,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              hallName!(item),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColor.primaryPurple,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildMobileCard(BuildContext context, ReservationModel item) {
     final theme = Theme.of(context);
@@ -488,6 +478,8 @@ class ReservationsTable extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      // Keep the date strip (now the last section) inside the rounded corners
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E24) : Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -528,29 +520,45 @@ class ReservationsTable extends StatelessWidget {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(radius: 3, backgroundColor: statusColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        item.statusKey.tr,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                    ],
-                  ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 3, backgroundColor: statusColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            item.statusKey.tr,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // All actions in one menu
+                    ReservationActionsMenu(
+                      reservation: item,
+                      onView: onView,
+                      onExpenses: onExpenses,
+                      onAddPayment: onAddPayment,
+                      onEditGuests: onEditGuests,
+                      onPrint: onPrint,
+                      onEdit: onEdit,
+                      onDelete: onDelete,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -672,22 +680,28 @@ class ReservationsTable extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.calendar_month_rounded,
-                      size: 16,
-                      color: AppColor.primaryPurple,
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month_rounded,
+                          size: 16,
+                          color: AppColor.primaryPurple,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          item.bookingDate,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      item.bookingDate,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    _buildHallLine(item),
                   ],
                 ),
                 Row(
@@ -712,108 +726,9 @@ class ReservationsTable extends StatelessWidget {
             ),
           ),
 
-          Divider(height: 1, color: colors.borderColor.withOpacity(0.3)),
-
-          // ── Footer: Actions ──
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  if (onAddPayment != null)
-                    _buildMobileActionButton(
-                      context,
-                      Icons.payments_rounded,
-                      Colors.green.shade600,
-                      'add_payment'.tr,
-                      () => onAddPayment!(item),
-                    ),
-                  if (onEditGuests != null)
-                    _buildMobileActionButton(
-                      context,
-                      Icons.group_rounded,
-                      Colors.blue.shade600,
-                      'guests'.tr,
-                      () => onEditGuests!(item),
-                    ),
-                  if (onPrint != null)
-                    _buildMobileActionButton(
-                      context,
-                      Icons.print_rounded,
-                      Colors.grey.shade600,
-                      'print'.tr,
-                      () => onPrint!(item),
-                    ),
-                  _buildMobileActionButton(
-                    context,
-                    Icons.visibility_rounded,
-                    AppColor.primaryPurple,
-                    'show'.tr,
-                    () => onView?.call(item),
-                  ),
-                  _buildMobileActionButton(
-                    context,
-                    Icons.edit_rounded,
-                    Colors.amber.shade700,
-                    'edit'.tr,
-                    () => onEdit?.call(item),
-                  ),
-                  _buildMobileActionButton(
-                    context,
-                    Icons.delete_rounded,
-                    Colors.red.shade600,
-                    'delete'.tr,
-                    () => onDelete?.call(item),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildMobileActionButton(
-    BuildContext context,
-    IconData icon,
-    Color color,
-    String tooltip,
-    VoidCallback onTap,
-  ) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: colors.inputFillColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.borderColor.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  tooltip,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

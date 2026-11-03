@@ -4,10 +4,12 @@ import 'package:zeffa/core/functions/dialogDelete.dart';
 import '../../controller/Reservationscontroller.dart';
 import '../widget/reservations/ReservationsHeader.dart';
 import '../widget/reservations/ReservationsTable.dart';
+import '../widget/halls/HallChips.dart';
 import '../widget/reservations/ReservationFormDialog.dart';
 import '../widget/reservations/ReservationDetailsDialog.dart';
 import '../widget/reservations/AddPaymentDialog.dart';
 import '../widget/reservations/EditGuestsDialog.dart';
+import '../widget/reservations/ReservationExpensesDialog.dart';
 import '../widget/reservations/ReservationDateFilterDialog.dart';
 import '../../core/functions/print_reservation.dart';
 
@@ -66,10 +68,25 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
             const SizedBox(height: 24),
 
+            // Hall filter (only when the account has several halls)
+            if (controllerRe.hasMultipleHalls) ...[
+              SizedBox(
+                width: double.infinity,
+                child: HallChips(
+                  halls: controllerRe.dbHalls,
+                  selectedKey: controllerRe.hallFilter.value,
+                  onSelected: (key) => controllerRe.hallFilter.value = key,
+                  showAll: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Data Table Section
             Expanded(
               child: ReservationsTable(
                 reservations: filteredReservations,
+                hallName: controllerRe.hasMultipleHalls ? controllerRe.hallNameOf : null,
                 onView: (reservation) {
                   Get.dialog(
                     ReservationDetailsDialog(reservation: reservation),
@@ -100,6 +117,12 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                 onAddPayment: (reservation) {
                   Get.dialog(
                     AddPaymentDialog(reservation: reservation),
+                    barrierDismissible: true,
+                  );
+                },
+                onExpenses: (reservation) {
+                  Get.dialog(
+                    ReservationExpensesDialog(reservation: reservation),
                     barrierDismissible: true,
                   );
                 },

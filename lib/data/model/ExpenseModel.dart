@@ -2,6 +2,7 @@ class ExpenseModel {
   final int? id;
   final String? uuid;
   final int? userId;
+  final String? reservationUuid; // Linked reservation (wedding), optional
   final int? type; // 1: maintenance workers, 2: cleaning materials, 3: other expenses
   final String? description; // Expense name
   final double? value; // Amount
@@ -13,6 +14,7 @@ class ExpenseModel {
     this.id,
     this.uuid,
     this.userId,
+    this.reservationUuid,
     this.type,
     this.description,
     this.value,
@@ -26,6 +28,7 @@ class ExpenseModel {
       id: json['id'],
       uuid: json['uuid'],
       userId: json['user_id'],
+      reservationUuid: json['reservation_uuid'],
       type: json['type'],
       description: json['description'],
       value: json['value'] != null ? (json['value'] as num).toDouble() : null,
@@ -40,6 +43,7 @@ class ExpenseModel {
       'id': id,
       'uuid': uuid,
       'user_id': userId,
+      'reservation_uuid': reservationUuid,
       'type': type,
       'description': description,
       'value': value,
@@ -53,6 +57,7 @@ class ExpenseModel {
     int? id,
     String? uuid,
     int? userId,
+    String? reservationUuid,
     int? type,
     String? description,
     double? value,
@@ -64,6 +69,7 @@ class ExpenseModel {
       id: id ?? this.id,
       uuid: uuid ?? this.uuid,
       userId: userId ?? this.userId,
+      reservationUuid: reservationUuid ?? this.reservationUuid,
       type: type ?? this.type,
       description: description ?? this.description,
       value: value ?? this.value,

@@ -31,6 +31,8 @@ class ExpensesController extends GetxController {
   late TextEditingController amountController;
   late TextEditingController dateController;
   final RxnInt formCategory = RxnInt();
+  // Optional reservation (wedding) this expense belongs to
+  final RxnString formReservationUuid = RxnString();
   DateTime? selectedDate;
   
   bool isEdit = false;
@@ -71,6 +73,7 @@ class ExpensesController extends GetxController {
     amountController.clear();
     dateController.clear();
     formCategory.value = null;
+    formReservationUuid.value = null;
     selectedDate = null;
     isEdit = false;
     editUuid = null;
@@ -80,7 +83,7 @@ class ExpensesController extends GetxController {
     try {
       final int userId = expensesRepo.id;
       final result = await _db.readData(
-        "SELECT deposit, remaining_amount, booking_date FROM reservations WHERE user_id = ?",
+        "SELECT uuid, username, deposit, remaining_amount, booking_date FROM reservations WHERE user_id = ? ORDER BY booking_date DESC",
         [userId],
       );
       return result;
@@ -88,6 +91,21 @@ class ExpensesController extends GetxController {
       print("Error fetching reservations for expenses income: $e");
       return [];
     }
+  }
+
+  /// "Customer name - date" label of a linked reservation
+  String? reservationLabel(String? uuid) {
+    if (uuid == null || uuid.isEmpty) return null;
+    final res = allReservations.firstWhereOrNull((r) => r['uuid'] == uuid);
+    if (res == null) return null;
+    return "${res['username'] ?? ''} - ${res['booking_date'] ?? ''}";
+  }
+
+  /// Customer name only of a linked reservation (used in table and search)
+  String? reservationName(String? uuid) {
+    if (uuid == null || uuid.isEmpty) return null;
+    final res = allReservations.firstWhereOrNull((r) => r['uuid'] == uuid);
+    return res?['username']?.toString();
   }
 
   Future<void> loadExpenses() async {
@@ -122,7 +140,8 @@ class ExpensesController extends GetxController {
 
     return allExpenses.where((expense) {
       final matchesSearch = query.isEmpty ||
-          (expense.description?.toLowerCase().contains(query) ?? false);
+          (expense.description?.toLowerCase().contains(query) ?? false) ||
+          (reservationName(expense.reservationUuid)?.toLowerCase().contains(query) ?? false);
       
       final matchesCategory = cat == 0 || expense.type == cat;
 
@@ -244,6 +263,7 @@ class ExpensesController extends GetxController {
         nameController.text,
         parsedValue,
         dateController.text,
+        reservationUuid: formReservationUuid.value,
       );
     } else {
       success = await expensesRepo.Adddata(
@@ -251,6 +271,7 @@ class ExpensesController extends GetxController {
         nameController.text,
         parsedValue,
         dateController.text,
+        reservationUuid: formReservationUuid.value,
       );
     }
 
@@ -270,6 +291,7 @@ class ExpensesController extends GetxController {
     amountController.text = expense.value?.toInt().toString() ?? "";
     dateController.text = expense.datePerry ?? "";
     formCategory.value = expense.type;
+    formReservationUuid.value = expense.reservationUuid;
     
     if (expense.datePerry != null) {
       try {

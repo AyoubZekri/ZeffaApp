@@ -10,6 +10,8 @@ class PartyTypeModel {
   final double? seasonalPrice;
   final List<Map<String, dynamic>>? guestPricingTiers;
   final String? icon;
+  // Saved expenses suggested when booking this type: [{type, description, value}]
+  final List<Map<String, dynamic>>? defaultExpenses;
   final String? createdAt;
   final String? updatedAt;
 
@@ -23,6 +25,7 @@ class PartyTypeModel {
     this.seasonalPrice,
     this.guestPricingTiers,
     this.icon,
+    this.defaultExpenses,
     this.createdAt,
     this.updatedAt,
   });
@@ -38,6 +41,7 @@ class PartyTypeModel {
       seasonalPrice: json['seasonal_price'] != null ? (json['seasonal_price'] as num).toDouble() : null,
       guestPricingTiers: _parseTiers(json['guest_pricing_tiers']),
       icon: json['icon'],
+      defaultExpenses: _parseTiers(json['default_expenses']),
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
     );
@@ -54,6 +58,7 @@ class PartyTypeModel {
       'seasonal_price': seasonalPrice,
       'guest_pricing_tiers': guestPricingTiers != null ? jsonEncode(guestPricingTiers) : null,
       'icon': icon,
+      'default_expenses': defaultExpenses != null ? jsonEncode(defaultExpenses) : null,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };

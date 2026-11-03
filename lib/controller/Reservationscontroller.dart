@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:zeffa/core/functions/Snacpar.dart';
+import 'package:uuid/uuid.dart';
 import 'package:zeffa/data/model/ReservationModel.dart';
 import '../../core/services/Services.dart';
 
@@ -14,11 +16,15 @@ import '../data/datasource/Remote/Dishes.dart';
 import '../data/datasource/Remote/SpecialDates.dart';
 import '../data/datasource/Remote/AdditionalServices.dart';
 import '../data/datasource/Remote/DishCategories.dart';
+import '../data/datasource/Remote/Expenses.dart';
+import '../data/datasource/Remote/Halls.dart';
+import '../data/model/HallModel.dart';
 import '../data/model/DishModel.dart';
 import '../data/model/DishCategoryModel.dart';
 import '../data/model/PartyTypeModel.dart';
 import '../data/model/SpecialDateModel.dart';
 import '../data/model/ServiceModel.dart';
+import '../view/widget/reservations/ExpensesPromptDialog.dart';
 
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
@@ -32,9 +38,16 @@ class Reservationscontroller extends GetxController {
   // Filters
   final Rx<DateTime?> startDateFilter = Rx<DateTime?>(null);
   final Rx<DateTime?> endDateFilter = Rx<DateTime?>(null);
+  // Hall filter of the list: null = all halls, '' = account hall
+  final RxnString hallFilter = RxnString();
 
   List<ReservationModel> get filteredReservations {
     return allReservations.where((res) {
+      // 0. Hall
+      if (hallFilter.value != null && (res.hallUuid ?? '') != hallFilter.value) {
+        return false;
+      }
+
       // 1. Search Query
       if (searchQuery.value.isNotEmpty) {
         final query = searchQuery.value.toLowerCase();
@@ -100,6 +113,7 @@ class Reservationscontroller extends GetxController {
         'remaining_amount'.tr,
         'added_by'.tr,
         'notes'.tr,
+        if (hasMultipleHalls) 'hall'.tr,
       ];
 
       sheetObject.appendRow(headers.map((h) => TextCellValue(h)).toList());
@@ -123,6 +137,7 @@ class Reservationscontroller extends GetxController {
           TextCellValue(res.remainingAmount.toString()),
           TextCellValue(res.addedByName ?? ''),
           TextCellValue(res.notes ?? ''),
+          if (hasMultipleHalls) TextCellValue(hallNameOf(res)),
         ]);
       }
 
@@ -157,6 +172,26 @@ class Reservationscontroller extends GetxController {
   List<DishCategoryModel> dbCategories = [];
   List<SpecialDateModel> specialDates = [];
   List<ServiceModel> dbServices = [];
+  // Account hall first, then the extra halls
+  List<HallModel> dbHalls = [];
+
+  /// More than the account hall → the hall must be chosen in reservations
+  bool get hasMultipleHalls => dbHalls.length > 1;
+
+  // Selected hall of the reservation form (null = account hall)
+  String? hallUuid;
+  bool hallSelected = false;
+
+  /// Reservation belongs to the hall selected in the form
+  bool isSameHall(ReservationModel res) =>
+      (res.hallUuid ?? '') == (hallUuid ?? '');
+
+  String hallNameOf(ReservationModel res) {
+    if (res.hallUuid == null || res.hallUuid!.isEmpty) {
+      return dbHalls.isNotEmpty ? (dbHalls.first.name ?? '') : '';
+    }
+    return res.hallName ?? '';
+  }
 
   late TextEditingController username;
   late TextEditingController phone;
@@ -174,6 +209,10 @@ class Reservationscontroller extends GetxController {
   final RxList<String> selectedDishes = <String>[].obs;
   final RxList<String> selectedServices = <String>[].obs;
 
+  // Optional expenses of this reservation: {uuid?, type, description, value}
+  final RxList<Map<String, dynamic>> reservationExpenses =
+      <Map<String, dynamic>>[].obs;
+
   final List<Map<String, dynamic>> bookingPeriods = [
     {'key': 1, 'label': 'period_full_day'},
     {'key': 3, 'label': 'period_evening'},
@@ -186,6 +225,8 @@ class Reservationscontroller extends GetxController {
   late Dishcategories categoriesData;
   late SpecialDates specialDatesData;
   late AdditionalServices servicesData;
+  late Expenses expensesData;
+  late Halls hallsData;
 
   Myservices myServices = Get.find();
   GlobalKey<FormState> formState = GlobalKey<FormState>();
@@ -210,6 +251,8 @@ class Reservationscontroller extends GetxController {
     categoriesData = Dishcategories(myServices);
     specialDatesData = SpecialDates(myServices);
     servicesData = AdditionalServices(myServices);
+    expensesData = Expenses(myServices);
+    hallsData = Halls(myServices);
 
     fetchInitialData();
 
@@ -228,6 +271,7 @@ class Reservationscontroller extends GetxController {
         categoriesData.viewdata(),
         specialDatesData.viewdata(),
         servicesData.viewdata(),
+        hallsData.allHalls(),
       ]);
 
       allReservations.assignAll(ReservationModel.fromList(results[0]));
@@ -236,6 +280,7 @@ class Reservationscontroller extends GetxController {
       dbCategories = DishCategoryModel.fromList(results[3]);
       specialDates = SpecialDateModel.fromList(results[4]);
       dbServices = ServiceModel.fromList(results[5]);
+      dbHalls = results[6] as List<HallModel>;
 
       statusrequest = Statusrequest.success;
     } catch (e, st) {
@@ -331,13 +376,19 @@ class Reservationscontroller extends GetxController {
     for (String serviceUuid in selectedServices) {
       final s = dbServices.firstWhereOrNull((sv) => sv.uuid == serviceUuid);
       if (s != null) {
-        calculatedPrice += s.price ?? 0.0;
+        // Per-person services: price × guests (0 while no guests)
+        calculatedPrice += s.costFor(formGuests);
       }
     }
 
     price.text = calculatedPrice.toInt().toString();
     calculateRemaining();
   }
+
+  /// Guests typed in the reservation form (men + women)
+  int get formGuests =>
+      (int.tryParse(numberofmen.text) ?? 0) +
+      (int.tryParse(numberOfwomen.text) ?? 0);
 
   void calculateRemaining() {
     double p = double.tryParse(price.text) ?? 0.0;
@@ -369,6 +420,7 @@ class Reservationscontroller extends GetxController {
       final List<int> bookedPeriods = [];
       for (var res in allReservations) {
         if (excludeUuid != null && res.uuid == excludeUuid) continue;
+        if (!isSameHall(res)) continue;
 
         try {
           final resDate = DateTime.parse(res.bookingDate.replaceAll('/', '-'));
@@ -444,6 +496,7 @@ class Reservationscontroller extends GetxController {
       final List<int> bookedPeriods = [];
       for (var res in allReservations) {
         if (excludeUuid != null && res.uuid == excludeUuid) continue;
+        if (!isSameHall(res)) continue;
 
         try {
           final resDate = DateTime.parse(res.bookingDate.replaceAll('/', '-'));
@@ -502,13 +555,158 @@ class Reservationscontroller extends GetxController {
     note.clear();
     BookingBeriod = null;
     typeOfPartyUuid = null;
+    hallUuid = null;
+    hallSelected = false;
     selectedDishes.clear();
     selectedServices.clear();
+    reservationExpenses.clear();
+  }
+
+  // ═══════════════════════════════════════
+  // Reservation expenses
+  // ═══════════════════════════════════════
+
+  double get reservationExpensesTotal => reservationExpenses.fold(
+    0.0,
+    (sum, e) => sum + ((e['value'] as num?)?.toDouble() ?? 0.0),
+  );
+
+  /// Comparable form of an expenses list (ignores uuids)
+  String _expensesSignature(List<Map<String, dynamic>>? list) {
+    return jsonEncode(
+      (list ?? [])
+          .map(
+            (e) => {
+              'type': e['type'],
+              'description': (e['description'] ?? '').toString().trim(),
+              'value': ((e['value'] as num?) ?? 0).toDouble(),
+            },
+          )
+          .toList(),
+    );
+  }
+
+  /// Called when the event type changes in a new reservation:
+  /// offers the expenses saved last time for this type.
+  Future<void> suggestSavedExpenses() async {
+    final party = dbPartyTypes.firstWhereOrNull((p) => p.uuid == typeOfPartyUuid);
+    final saved = party?.defaultExpenses;
+    if (saved == null || saved.isEmpty) return;
+    if (_expensesSignature(reservationExpenses) == _expensesSignature(saved)) {
+      return;
+    }
+
+    final use = await Get.dialog<bool>(
+      ExpensesPromptDialog(
+        icon: Icons.history_rounded,
+        title: 'saved_expenses_found'.tr,
+        message: 'saved_expenses_found_desc'.trParams({
+          'type': party?.name ?? '',
+        }),
+        confirmText: 'use_them'.tr,
+        cancelText: 'no'.tr,
+        expenses: saved,
+      ),
+    );
+
+    if (use == true) {
+      reservationExpenses.assignAll(
+        saved.map(
+          (e) => {
+            'type': e['type'],
+            'description': e['description'],
+            'value': ((e['value'] as num?) ?? 0).toDouble(),
+          },
+        ),
+      );
+    }
+  }
+
+  /// Insert / update / delete the expenses linked to a reservation
+  Future<void> _saveReservationExpenses(
+    String reservationUuid,
+    String bookingDate,
+    List<Map<String, dynamic>> expenses,
+  ) async {
+    final existing = await expensesData.viewByReservation(reservationUuid);
+    final keptUuids = expenses.map((e) => e['uuid']).whereType<String>().toSet();
+
+    for (final old in existing) {
+      if (!keptUuids.contains(old['uuid'])) {
+        await expensesData.Deletedata(old['uuid'].toString());
+      }
+    }
+
+    for (final e in expenses) {
+      final int type = (e['type'] as int?) ?? 3;
+      final String description = (e['description'] ?? '').toString();
+      final double value = ((e['value'] as num?) ?? 0).toDouble();
+      if (e['uuid'] != null) {
+        await expensesData.Updatedata(
+          e['uuid'],
+          type,
+          description,
+          value,
+          bookingDate,
+          reservationUuid: reservationUuid,
+        );
+      } else {
+        await expensesData.Adddata(
+          type,
+          description,
+          value,
+          bookingDate,
+          reservationUuid: reservationUuid,
+        );
+      }
+    }
+  }
+
+  /// If the expenses differ from the ones saved for this event type,
+  /// ask whether to keep them for the next reservation.
+  Future<void> _askToSaveExpensesTemplate(
+    String? partyUuid,
+    List<Map<String, dynamic>> expenses,
+  ) async {
+    if (partyUuid == null || expenses.isEmpty) return;
+    final party = dbPartyTypes.firstWhereOrNull((p) => p.uuid == partyUuid);
+    if (party == null) return;
+    if (_expensesSignature(expenses) == _expensesSignature(party.defaultExpenses)) {
+      return;
+    }
+
+    final save = await Get.dialog<bool>(
+      ExpensesPromptDialog(
+        icon: Icons.bookmark_add_outlined,
+        title: 'save_expenses_for_next_time'.tr,
+        message: 'save_expenses_for_next_time_desc'.trParams({
+          'type': party.name ?? '',
+        }),
+        confirmText: 'save'.tr,
+        cancelText: 'no'.tr,
+        expenses: expenses,
+      ),
+    );
+
+    if (save == true) {
+      final ok = await partyData.updateDefaultExpenses(
+        partyUuid,
+        _expensesSignature(expenses),
+      );
+      if (ok) {
+        showSnackbar('success'.tr, 'expenses_template_saved'.tr, Colors.green);
+      }
+    }
   }
 
   // عرض البيانات
   Future<void> addReservation() async {
     if (!formState.currentState!.validate()) {
+      return;
+    }
+
+    if (hasMultipleHalls && !hallSelected) {
+      showSnackbar('warning'.tr, 'please_select_hall'.tr, Colors.orange);
       return;
     }
 
@@ -541,6 +739,7 @@ class Reservationscontroller extends GetxController {
       "booking_date": date.text,
       "booking_period": BookingBeriod,
       "type_of_party_uuid": typeOfPartyUuid,
+      "hall_uuid": hallUuid,
       "price": double.tryParse(price.text) ?? 0.0,
       "deposit": double.tryParse(deposit.text) ?? 0.0,
       "remaining_amount": double.tryParse(remainingamount.text) ?? 0.0,
@@ -551,15 +750,22 @@ class Reservationscontroller extends GetxController {
       "notes": note.text,
     };
 
+    final String newUuid = const Uuid().v4();
+    final expenses = reservationExpenses.map((e) => Map<String, dynamic>.from(e)).toList();
+    final String? partyUuid = typeOfPartyUuid;
+
     bool success = await resData.Adddata(
       rawData,
       selectedDishes,
       selectedServices,
+      presetUuid: newUuid,
     );
     if (success) {
+      await _saveReservationExpenses(newUuid, date.text, expenses);
       Get.back();
       showSnackbar('success'.tr, 'added_successfully'.tr, Colors.green);
 
+      await _askToSaveExpensesTemplate(partyUuid, expenses);
       fetchInitialData();
       cleardata();
     } else {
@@ -576,6 +782,8 @@ class Reservationscontroller extends GetxController {
     date.text = res.bookingDate.replaceAll('/', '-');
     BookingBeriod = res.bookingPeriod?.toString();
     typeOfPartyUuid = res.typeOfPartyUuid;
+    hallUuid = res.hallUuid;
+    hallSelected = true;
     price.text = res.price.toInt().toString();
     deposit.text = res.deposit.toInt().toString();
     remainingamount.text = res.remainingAmount.toInt().toString();
@@ -596,10 +804,29 @@ class Reservationscontroller extends GetxController {
     selectedServices.assignAll(
       svcs.map((e) => e['service_uuid'].toString()).toList(),
     );
+
+    // fetch expenses linked to this reservation
+    reservationExpenses.clear();
+    final exps = await expensesData.viewByReservation(res.uuid);
+    reservationExpenses.assignAll(
+      exps.map(
+        (e) => {
+          'uuid': e['uuid'],
+          'type': e['type'],
+          'description': e['description'],
+          'value': ((e['value'] as num?) ?? 0).toDouble(),
+        },
+      ),
+    );
   }
 
   Future<void> updateReservation(String uuid) async {
     if (!formState.currentState!.validate()) return;
+
+    if (hasMultipleHalls && !hallSelected) {
+      showSnackbar('warning'.tr, 'please_select_hall'.tr, Colors.orange);
+      return;
+    }
 
     if (typeOfPartyUuid == null || BookingBeriod == null) {
       Get.snackbar(
@@ -631,6 +858,7 @@ class Reservationscontroller extends GetxController {
       "booking_date": date.text,
       "booking_period": BookingBeriod,
       "type_of_party_uuid": typeOfPartyUuid,
+      "hall_uuid": hallUuid,
       "price": double.tryParse(price.text) ?? 0.0,
       "deposit": double.tryParse(deposit.text) ?? 0.0,
       "remaining_amount": double.tryParse(remainingamount.text) ?? 0.0,
@@ -639,6 +867,9 @@ class Reservationscontroller extends GetxController {
       "notes": note.text,
     };
 
+    final expenses = reservationExpenses.map((e) => Map<String, dynamic>.from(e)).toList();
+    final String? partyUuid = typeOfPartyUuid;
+
     bool success = await resData.Updatedata(
       uuid,
       rawData,
@@ -646,12 +877,14 @@ class Reservationscontroller extends GetxController {
       selectedServices,
     );
     if (success) {
+      await _saveReservationExpenses(uuid, date.text, expenses);
       Get.back();
       showSnackbar(
         'success_msg'.tr,
         'reservation_updated_successfully'.tr,
         Colors.green,
       );
+      await _askToSaveExpensesTemplate(partyUuid, expenses);
       fetchInitialData();
       cleardata();
     } else {
@@ -740,6 +973,16 @@ class Reservationscontroller extends GetxController {
         }
       } catch (e) {
           print("Error calculating extra guests price: $e");
+      }
+    }
+
+    // Per-person services follow the new guest count
+    final oldGuests = res.numberOfMen + res.numberOfWomen;
+    final newGuests = men + women;
+    for (final uuid in (res.servicesUuids ?? '').split(',')) {
+      final s = dbServices.firstWhereOrNull((sv) => sv.uuid == uuid.trim());
+      if (s != null && s.isPerPerson) {
+        baseCustomPrice += s.costFor(newGuests) - s.costFor(oldGuests);
       }
     }
 

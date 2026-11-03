@@ -19,6 +19,7 @@ class RolesController extends GetxController {
     'dishes',
     'expenses',
     'additional_services',
+    'halls',
     'notes',
     'terms',
   ];
