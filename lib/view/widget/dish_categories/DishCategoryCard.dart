@@ -1,3 +1,4 @@
+import '../../../core/functions/app_image.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -67,12 +68,9 @@ class DishCategoryCard extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: imageUrl != null &&
-                      imageUrl.isNotEmpty &&
-                      !imageUrl.startsWith('http') &&
-                      File(imageUrl).existsSync()
-                  ? Image.file(
-                      File(imageUrl),
+              child: imageExists(imageUrl)
+                  ? appImage(
+                  imageUrl!,
                       fit: BoxFit.cover,
                     )
                   : Container(
@@ -167,12 +165,9 @@ class DishCategoryCard extends StatelessWidget {
           // Image Section with Badge
           Stack(
             children: [
-              imageUrl != null &&
-                      imageUrl.isNotEmpty &&
-                      !imageUrl.startsWith('http') &&
-                      File(imageUrl).existsSync()
-                  ? Image.file(
-                      File(imageUrl),
+              imageExists(imageUrl)
+                  ? appImage(
+                  imageUrl!,
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,

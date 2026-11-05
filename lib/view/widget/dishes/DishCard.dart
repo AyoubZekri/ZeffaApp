@@ -1,3 +1,4 @@
+import '../../../core/functions/app_image.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -71,11 +72,9 @@ class DishCard extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child:
-                  imageUrl != null &&
-                      imageUrl.isNotEmpty &&
-                      !imageUrl.startsWith('http') &&
-                      File(imageUrl).existsSync()
-                  ? Image.file(File(imageUrl), fit: BoxFit.cover)
+                  imageExists(imageUrl)
+                  ? appImage(
+                  imageUrl!, fit: BoxFit.cover)
                   : Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -167,12 +166,9 @@ class DishCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          imageUrl != null &&
-                  imageUrl.isNotEmpty &&
-                  !imageUrl.startsWith('http') &&
-                  File(imageUrl).existsSync()
-              ? Image.file(
-                  File(imageUrl),
+          imageExists(imageUrl)
+              ? appImage(
+                  imageUrl!,
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,

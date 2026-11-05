@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -123,6 +124,8 @@ class Startpagecontrller extends GetxController {
   }
 
   Future<String> downloadAndCacheImage(String imageUrl, String fileName) async {
+    // Browser: no local files, keep the server URL
+    if (kIsWeb) return imageUrl;
     try {
       final directory = await getApplicationDocumentsDirectory();
       final filePath = "${directory.path}/$fileName";

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -19,6 +21,17 @@ class SQLDB {
   int get version => 5;
 
   Future<Database> intialDb() async {
+    if (kIsWeb) {
+      // Browser: SQLite (web/sqlite3.wasm) stored in IndexedDB
+      return databaseFactoryFfiWebNoWebWorker.openDatabase(
+        'zeffa.db',
+        options: OpenDatabaseOptions(
+          version: version,
+          onCreate: _onCreate,
+          onUpgrade: _onUpgrade,
+        ),
+      );
+    }
     String dataBais;
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final dir = await getApplicationSupportDirectory();
@@ -390,6 +403,11 @@ class SQLDB {
   }
 
   Future<void> mydeleteDatebase() async {
+    if (kIsWeb) {
+      _db = null;
+      await databaseFactoryFfiWebNoWebWorker.deleteDatabase('zeffa.db');
+      return;
+    }
     String dataBais;
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final dir = await getApplicationSupportDirectory();

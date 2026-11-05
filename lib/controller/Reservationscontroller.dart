@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -139,6 +140,24 @@ class Reservationscontroller extends GetxController {
           TextCellValue(res.notes ?? ''),
           if (hasMultipleHalls) TextCellValue(hallNameOf(res)),
         ]);
+      }
+
+      // Browser: download the file directly
+      if (kIsWeb) {
+        final bytes = excel.save();
+        if (bytes != null) {
+          await FilePicker.platform.saveFile(
+            fileName:
+                'reservations_export_${DateTime.now().millisecondsSinceEpoch}.xlsx',
+            bytes: Uint8List.fromList(bytes),
+          );
+          showSnackbar(
+            'success'.tr,
+            'export_to_excel'.tr + ' ' + 'success'.tr,
+            Colors.green,
+          );
+        }
+        return;
       }
 
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();

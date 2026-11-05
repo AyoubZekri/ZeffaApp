@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
 import 'dart:io';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
@@ -13,7 +14,7 @@ class SyncForegroundService {
   Future<void> start() async {
     syncService.initSyncListener(); // هذا السطر يجعل المزامنة تعمل عند عودة الإنترنت
 
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       await AndroidAlarmManager.initialize();
       AndroidAlarmManager.periodic(
         const Duration(minutes: 15),
@@ -35,7 +36,7 @@ class SyncForegroundService {
   }
 
   void stop() {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       AndroidAlarmManager.cancel(123);
       print("AlarmManager stopped");
     } else {

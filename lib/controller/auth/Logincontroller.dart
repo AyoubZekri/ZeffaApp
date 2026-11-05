@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:zeffa/core/class/Statusrequest.dart';
 import 'package:zeffa/core/constant/routes.dart';
 import 'package:zeffa/core/functions/Snacpar.dart';
@@ -262,6 +263,8 @@ class Logincontroller extends GetxController {
   // }
 
   Future<String> downloadAndCacheImage(String imageUrl, String fileName) async {
+    // Browser: no local files, keep the server URL
+    if (kIsWeb) return imageUrl;
     try {
       final directory = await getApplicationDocumentsDirectory();
       final filePath = "${directory.path}/$fileName";

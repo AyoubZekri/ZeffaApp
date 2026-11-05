@@ -129,13 +129,6 @@ class Siedbarcontroller extends GetxController {
           'page': () => const HallsScreen(),
           'subPages': [],
         },
-      if (hasPermission('sub_users') && currentStatus != 2)
-        {
-          'name': 'sub_users',
-          'icon': Icons.people_outline_rounded,
-          'page': () => const SubUsersScreen(),
-          'subPages': [],
-        },
       if (hasPermission('notes'))
         {
           'name': 'notes',
@@ -155,13 +148,6 @@ class Siedbarcontroller extends GetxController {
       //   'icon': Icons.notifications_none_outlined,
       //   'page': () => const NotificationsScreen(),
       // },
-      if (hasPermission('roles_permissions') && currentStatus != 2)
-        {
-          'name': 'roles_permissions',
-          'icon': Icons.admin_panel_settings_outlined,
-          'page': () => const RolesScreen(),
-          'subPages': [],
-        },
     ];
   }
   void _deleteAllControllers() {

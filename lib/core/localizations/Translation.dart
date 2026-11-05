@@ -767,6 +767,7 @@ class MyTranslation extends Translations {
       "price_per_person": "لكل شخص",
       "per_person": "للشخص",
       "price_per_person_note": "يُضرب السعر في عدد المعزومين أثناء الحجز",
+      "image_upload_not_on_web": "إضافة الصور غير متاحة في نسخة الويب حالياً، أضفها من الهاتف",
     },
     "en": {
       "notifications": "notifications",
@@ -1547,6 +1548,7 @@ class MyTranslation extends Translations {
       "price_per_person": "Per person",
       "per_person": "person",
       "price_per_person_note": "The price is multiplied by the number of guests in the reservation",
+      "image_upload_not_on_web": "Adding images isn't available on the web version yet, add it from the phone",
     },
   };
 }

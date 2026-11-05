@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:zeffa/core/constant/Colorapp.dart';
 import 'package:file_picker/file_picker.dart';
@@ -6,7 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
+/// Picking images isn't available in the browser version yet
+bool _blockedOnWeb() {
+  if (!kIsWeb) return false;
+  Get.snackbar('', 'image_upload_not_on_web'.tr);
+  return true;
+}
+
 imageuploadcamera() async {
+  if (_blockedOnWeb()) return null;
   final XFile? file = await ImagePicker().pickImage(
     source: ImageSource.camera,
     imageQuality: 90,
@@ -19,6 +28,7 @@ imageuploadcamera() async {
 }
 
 fileuploadGallery([isvg = true]) async {
+  if (_blockedOnWeb()) return null;
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: isvg

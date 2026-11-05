@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:convert';
 import 'dart:io';
 
@@ -85,7 +86,8 @@ class SyncService {
           if (table == "cat_dishes") filePath = data["image"];
           if (table == "dishes") filePath = data["image"];
 
-          bool hasImage = filePath != null && File(filePath).existsSync();
+          bool hasImage =
+              !kIsWeb && filePath != null && File(filePath).existsSync();
 
           if (hasImage) {
             // إزالة الحقل قبل الإرسال
@@ -154,6 +156,8 @@ class SyncService {
       if (path.startsWith("/data/")) return path;
 
       final url = "${Applink.image}storage/$path";
+      // Browser: show the image from the server, no local copy
+      if (kIsWeb) return url;
       final res = await http.get(Uri.parse(url));
 
       if (res.statusCode == 200) {

@@ -1,3 +1,4 @@
+import '../../../core/functions/app_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controller/DishCategoriesController.dart';
@@ -162,8 +163,8 @@ class _DishCategoryFormDialogState extends State<DishCategoryFormDialog> {
                                             child: ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(10),
-                                              child: Image.file(
-                                                ctrl.file!,
+                                              child: appImage(
+                                                ctrl.file!.path,
                                                 fit: BoxFit.cover,
                                               ),
                                             ),

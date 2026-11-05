@@ -1,3 +1,4 @@
+import '../../core/functions/app_image.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -106,19 +107,10 @@ class UserProfileDialog extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: CircleAvatar(
+                        child: appAvatar(
+                          controller.imagePath.value,
                           radius: 40,
-                          backgroundColor: Colors.white,
-                          backgroundImage: () {
-                            final path = controller.imagePath.value;
-                            if (path != null &&
-                                path.isNotEmpty &&
-                                !path.startsWith('http') &&
-                                File(path).existsSync()) {
-                              return FileImage(File(path)) as ImageProvider;
-                            }
-                            return const AssetImage(Appimageassets.logo);
-                          }(),
+                          fallbackAsset: Appimageassets.logo,
                         ),
                       ),
                     ),

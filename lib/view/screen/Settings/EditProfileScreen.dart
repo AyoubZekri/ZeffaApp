@@ -1,3 +1,4 @@
+import '../../../core/functions/app_image.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -107,22 +108,9 @@ class EditProfileDialog extends StatelessWidget {
                                             controller.profileImage!,
                                             fit: BoxFit.cover,
                                           )
-                                        : (controller.currentImagePath !=
-                                                      null &&
-                                                  controller
-                                                      .currentImagePath!
-                                                      .isNotEmpty &&
-                                                  !controller.currentImagePath!
-                                                      .startsWith('http') &&
-                                                  File(
-                                                    controller
-                                                        .currentImagePath!,
-                                                  ).existsSync()
-                                              ? Image.file(
-                                                  File(
-                                                    controller
-                                                        .currentImagePath!,
-                                                  ),
+                                        : (imageExists(controller.currentImagePath)
+                                              ? appImage(
+                                                  controller.currentImagePath!,
                                                   fit: BoxFit.cover,
                                                 )
                                               : Image.asset(

@@ -84,6 +84,7 @@ dependencies:
   tray_manager: ^0.5.3
   excel: ^4.0.6
   arabic_reshaper: ^0.0.1
+  sqflite_common_ffi_web: ^1.1.1
 
 
 dev_dependencies:
