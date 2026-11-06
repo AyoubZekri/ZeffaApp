@@ -17,6 +17,7 @@ class SidebarWidget extends StatelessWidget {
     final controller = Get.find<Siedbarcontroller>();
 
     return Obx(() {
+      final _ = controller.menuTick.value; // rebuild on role change
       final isDark = controller.isDarkMode.value;
       final theme = isDark ? AppTheme.darkTheme : AppTheme.lightTheme;
       final colors = isDark ? AppColors.dark : AppColors.light;
@@ -309,7 +310,10 @@ class MainLayout extends StatelessWidget {
                           final screen =
                               controller.screens[controller.currentPage.value];
                           return screen['page'] != null
-                              ? screen['page']()
+                              ? KeyedSubtree(
+                                  key: ValueKey(controller.pageReloadTick.value),
+                                  child: screen['page'](),
+                                )
                               : Center(child: Text('page_not_found'.tr));
                         }),
                       ),

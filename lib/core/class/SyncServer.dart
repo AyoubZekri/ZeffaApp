@@ -1,3 +1,4 @@
+import '../../controller/SiedBarController.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:convert';
 import 'dart:io';
@@ -396,6 +397,11 @@ class SyncService {
     await pullFromServer("terms_content");
 
     print('all_sync_completed_successfully'.tr);
+
+    // Pick up permission changes made by the owner
+    if (Get.isRegistered<Siedbarcontroller>()) {
+      await Get.find<Siedbarcontroller>().refreshRole();
+    }
   }
 
   // ---------------------------------------------------------
@@ -406,8 +412,8 @@ class SyncService {
     print("🔄 initSyncListener started…");
 
     Connectivity().onConnectivityChanged.listen((results) async {
-      if (results.contains(ConnectivityResult.mobile) ||
-          results.contains(ConnectivityResult.wifi)) {
+      // Any connection (browsers on a PC report ethernet / other)
+      if (results.any((r) => r != ConnectivityResult.none)) {
         if (await checkInternet()) {
           print('internet_restored_run_sync_all'.tr);
           await syncAll();

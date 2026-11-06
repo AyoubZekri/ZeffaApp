@@ -1,0 +1,9 @@
+# Zeffa web (Hostinger / LiteSpeed)
+
+# sqlite3.wasm must be served as WebAssembly, or the browser database won't load
+AddType application/wasm .wasm
+
+# Always fetch the entry files, so users get a new upload right away
+<FilesMatch "^(index\.html|flutter_service_worker\.js|flutter_bootstrap\.js|manifest\.json)$">
+  Header set Cache-Control "no-cache, no-store, must-revalidate"
+</FilesMatch>

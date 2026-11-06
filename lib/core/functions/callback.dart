@@ -1,3 +1,5 @@
+import '../../controller/SiedBarController.dart';
+import 'package:get/get.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
 import 'dart:io';
@@ -13,6 +15,19 @@ class SyncForegroundService {
 
   Future<void> start() async {
     syncService.initSyncListener(); // هذا السطر يجعل المزامنة تعمل عند عودة الإنترنت
+
+    // Browser: the connectivity event doesn't fire on open like on phone /
+    // desktop, so sync right away when already logged in
+    if (kIsWeb &&
+        (Get.find<Myservices>().sharedPreferences?.getString("token") ?? "")
+            .isNotEmpty) {
+      syncService.syncAll().then((_) {
+        // Reload the open page with the synced data
+        if (Get.isRegistered<Siedbarcontroller>()) {
+          Get.find<Siedbarcontroller>().pageReloadTick.value++;
+        }
+      });
+    }
 
     if (!kIsWeb && Platform.isAndroid) {
       await AndroidAlarmManager.initialize();

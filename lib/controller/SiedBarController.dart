@@ -1,3 +1,5 @@
+import '../data/datasource/Remote/Auth/logen_data.dart';
+import '../core/class/Crud.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,8 +15,6 @@ import '../../view/screen/NotesScreen.dart';
 import '../../view/screen/TermsScreen.dart';
 import '../../view/screen/ServicesScreen.dart';
 import '../../view/screen/HallsScreen.dart';
-import '../../view/screen/RolesScreen.dart';
-import '../../view/screen/SubUsersScreen.dart';
 
 import 'CalendarController.dart';
 import 'DishCategoriesController.dart';
@@ -38,6 +38,45 @@ class Siedbarcontroller extends GetxController {
   bool issobscureText = true;
   bool issobscureText2 = true;
   RxInt currentPage = 0.obs;
+  // Bumped to rebuild the open page (reload its data), e.g. after the first web sync
+  RxInt pageReloadTick = 0.obs;
+  // Bumped when the role's permissions change, to rebuild the menu
+  RxInt menuTick = 0.obs;
+
+  /// Re-read the role from the server so removed permissions disappear from
+  /// the menu without logging in again (on the web the start screen, which
+  /// used to do this, is skipped when the page is refreshed).
+  Future<void> refreshRole() async {
+    try {
+      final response = await LoginData(Get.find<Crud>()).getUser();
+      if (response is! Map || response["status"] != 1) return;
+      final currentUser = response["data"]["data"][0];
+      final roleDetails = currentUser["role_details"];
+      if (roleDetails == null) return;
+
+      final prefs = myservices.sharedPreferences!;
+      final oldType = prefs.getString("type");
+      final oldPerms = prefs.getString("permissions");
+      final newType = roleDetails["type"]?.toString() ?? "";
+      final rawPerms = roleDetails["permissions"];
+      final newPerms = rawPerms == null
+          ? "[]"
+          : (rawPerms is String ? rawPerms : jsonEncode(rawPerms));
+
+      if (newType == oldType && newPerms == oldPerms) return;
+      await prefs.setString("type", newType);
+      await prefs.setString("permissions", newPerms);
+
+      // The open page may no longer be allowed
+      currentSubPage.value = null;
+      expandedIndex.value = null;
+      if (currentPage.value >= screens.length) currentPage.value = 0;
+      menuTick.value++;
+      pageReloadTick.value++;
+    } catch (e) {
+      print("refreshRole error: $e");
+    }
+  }
   RxnInt expandedIndex = RxnInt();
   RxnInt currentSubIndex = RxnInt();
   Rx<Widget Function()?> currentSubPage = Rx<Widget Function()?>(null);
@@ -71,7 +110,6 @@ class Siedbarcontroller extends GetxController {
   }
 
   List<Map<String, dynamic>> get screens {
-    int? currentStatus = myservices.sharedPreferences!.getInt("status");
     return [
       if (hasPermission('calendar'))
         {
@@ -234,6 +272,7 @@ class Siedbarcontroller extends GetxController {
       loadProfileData();
     });
     Get.find<RefreshService>().fire();
+    refreshRole();
     super.onInit();
   }
 }
