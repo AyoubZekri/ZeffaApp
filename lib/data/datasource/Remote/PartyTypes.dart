@@ -37,8 +37,10 @@ class PartyTypes {
     double basicPrice,
     double seasonalPrice,
     String? guestPricingTiers,
-    String icon,
-  ) async {
+    String icon, {
+    double? workerPrice,
+    double? femaleWorkerPrice,
+  }) async {
     final String uuid = Uuid().v4();
 
     try {
@@ -51,6 +53,8 @@ class PartyTypes {
         "seasonal_price": seasonalPrice,
         "guest_pricing_tiers": guestPricingTiers,
         "icon": icon,
+        "worker_price": workerPrice,
+        "female_worker_price": femaleWorkerPrice,
         "created_at": DateTime.now().toIso8601String(),
         "updated_at": DateTime.now().toIso8601String(),
       };
@@ -75,8 +79,10 @@ class PartyTypes {
     double basicPrice,
     double seasonalPrice,
     String? guestPricingTiers,
-    String icon,
-  ) async {
+    String icon, {
+    double? workerPrice,
+    double? femaleWorkerPrice,
+  }) async {
     try {
       final data = {
         "name": name,
@@ -85,6 +91,8 @@ class PartyTypes {
         "seasonal_price": seasonalPrice,
         "guest_pricing_tiers": guestPricingTiers,
         "icon": icon,
+        "worker_price": workerPrice,
+        "female_worker_price": femaleWorkerPrice,
         "updated_at": DateTime.now().toIso8601String(),
       };
 

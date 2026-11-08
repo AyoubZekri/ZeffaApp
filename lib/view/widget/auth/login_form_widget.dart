@@ -95,13 +95,17 @@ class LoginFormWidget extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(
-                          'remember_me'.tr,
-                          style: TextStyle(color: subtitleColor),
+                        GestureDetector(
+                          onTap: () =>
+                              controller.toggleRememberMe(!controller.rememberMe),
+                          child: Text(
+                            'remember_me'.tr,
+                            style: TextStyle(color: subtitleColor),
+                          ),
                         ),
                         Checkbox(
-                          value: false,
-                          onChanged: (val) {},
+                          value: controller.rememberMe,
+                          onChanged: controller.toggleRememberMe,
                           activeColor: AppColor.primaryPurple,
                         ),
                       ],

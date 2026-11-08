@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controller/ExpensesController.dart';
@@ -42,22 +43,32 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isMobile ? 20 : 24)),
-      insetPadding: isMobile ? const EdgeInsets.all(16) : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+      ),
+      insetPadding: isMobile
+          ? const EdgeInsets.all(16)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       backgroundColor: bgColor,
       child: Directionality(
         textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
         child: Container(
           width: isMobile ? double.infinity : 580,
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * (isMobile ? 0.95 : 0.85),
+            maxHeight:
+                MediaQuery.of(context).size.height * (isMobile ? 0.95 : 0.85),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // ── Header ──
               Container(
-                padding: EdgeInsets.fromLTRB(isMobile ? 20 : 32, isMobile ? 20 : 28, isMobile ? 20 : 32, 20),
+                padding: EdgeInsets.fromLTRB(
+                  isMobile ? 20 : 32,
+                  isMobile ? 20 : 28,
+                  isMobile ? 20 : 32,
+                  20,
+                ),
                 decoration: BoxDecoration(
                   border: Border(bottom: BorderSide(color: borderColor)),
                 ),
@@ -149,7 +160,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> {
                           return CustemDropDownField<int>(
                             value: ctrl.formCategory.value,
                             onChanged: (val) {
-                              ctrl.formCategory.value = val;
+                              ctrl.onCategoryChanged(val);
                             },
                             validator: (val) {
                               if (val == null) {
@@ -191,41 +202,86 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> {
                         }),
                         const SizedBox(height: 20),
 
-                        // Linked reservation (optional)
-                        Text(
-                          'linked_reservation'.tr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: textColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
+                        // Linked to a reservation (optional switch)
                         Obx(() {
-                          return CustemDropDownField<String?>(
-                            value: ctrl.formReservationUuid.value,
-                            hint: 'general_expense_no_reservation'.tr,
-                            onChanged: (val) {
-                              ctrl.formReservationUuid.value = val;
-                            },
-                            items: [
-                              DropdownMenuItem<String?>(
-                                value: null,
-                                child: Text(
-                                  'general_expense_no_reservation'.tr,
-                                  style: TextStyle(color: textColor),
+                          final linked = ctrl.linkToReservation.value;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsetsDirectional.only(
+                                  start: 12,
+                                  end: 4,
                                 ),
-                              ),
-                              ...ctrl.allReservations.map(
-                                (res) => DropdownMenuItem<String?>(
-                                  value: res['uuid']?.toString(),
-                                  child: Text(
-                                    ctrl.reservationLabel(res['uuid']?.toString()) ?? '',
-                                    style: TextStyle(color: textColor),
-                                    overflow: TextOverflow.ellipsis,
+                                decoration: BoxDecoration(
+                                  color: linked
+                                      ? AppColor.primaryPurple.withValues(
+                                          alpha: 0.06,
+                                        )
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: linked
+                                        ? AppColor.primaryPurple
+                                        : borderColor,
                                   ),
                                 ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.event_available_rounded,
+                                      size: 20,
+                                      color: linked
+                                          ? AppColor.primaryPurple
+                                          : subtitleColor,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'expense_linked_to_reservation'.tr,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Transform.scale(
+                                      scale: 0.75,
+                                      child: Switch(
+                                        value: linked,
+                                        activeColor: AppColor.primaryPurple,
+                                        onChanged: ctrl.setLinkToReservation,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              if (linked) ...[
+                                const SizedBox(height: 12),
+                                CustemDropDownField<String?>(
+                                  value: ctrl.formReservationUuid.value,
+                                  hint: 'select_reservation'.tr,
+                                  onChanged: (val) {
+                                    ctrl.onReservationChanged(val);
+                                  },
+                                  items: ctrl.allReservations
+                                      .map(
+                                        (res) => DropdownMenuItem<String?>(
+                                          value: res['uuid']?.toString(),
+                                          child: Text(
+                                            ctrl.reservationLabel(
+                                                  res['uuid']?.toString(),
+                                                ) ??
+                                                '',
+                                            style: TextStyle(color: textColor),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ],
                             ],
                           );
                         }),
@@ -245,21 +301,162 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Amount
-                        CustemTextField(
-                          controller: ctrl.amountController,
-                          label: 'status'.tr == 'status'.tr
-                              ? 'amount_da'.tr
-                              : 'Amount (DA)',
-                          hint: '0.00',
-                          icon: Icons.monetization_on_outlined,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: (val) {
-                            return validInput(val!, 1000, 1, "number");
-                          },
-                        ),
+                        // Amount — workers: count × price per person (from the event type
+                        // when linked to a reservation), otherwise the amount typed directly
+                        Obx(() {
+                          final isWorkers = ctrl.formCategory.value == 1;
+                          final linked = ctrl.linkToReservation.value;
+                          final byCount = ctrl.workersByCount.value;
+                          final total = ctrl.workersTotal.value;
+                          final computed = isWorkers && (linked || byCount);
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isWorkers && !linked) ...[
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.groups_rounded,
+                                      size: 20,
+                                      color: subtitleColor,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'by_workers_count'.tr,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Transform.scale(
+                                      scale: 0.75,
+                                      child: Switch(
+                                        value: byCount,
+                                        activeColor: AppColor.primaryPurple,
+                                        onChanged: (v) {
+                                          ctrl.workersByCount.value = v;
+                                          ctrl.recalcWorkers();
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                              if (computed) ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CustemTextField(
+                                        controller: ctrl.workersCountController,
+                                        label: 'workers_count'.tr,
+                                        hint: '0',
+                                        icon: Icons.man_rounded,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => ctrl.recalcWorkers(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: CustemTextField(
+                                        controller: ctrl.workerPriceController,
+                                        label: 'worker_price'.tr,
+                                        hint: '0',
+                                        icon: Icons.payments_outlined,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => ctrl.recalcWorkers(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: CustemTextField(
+                                        controller:
+                                            ctrl.femaleWorkersCountController,
+                                        label: 'female_workers_count'.tr,
+                                        hint: '0',
+                                        icon: Icons.woman_rounded,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => ctrl.recalcWorkers(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: CustemTextField(
+                                        controller:
+                                            ctrl.femaleWorkerPriceController,
+                                        label: 'female_worker_price'.tr,
+                                        hint: '0',
+                                        icon: Icons.payments_outlined,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => ctrl.recalcWorkers(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: AppColor.primaryPurple.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColor.primaryPurple.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        'workers_total'.tr,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        "${formatMoney(total)} DA",
+                                        style: const TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColor.primaryPurple,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else
+                                CustemTextField(
+                                  controller: ctrl.amountController,
+                                  label: 'status'.tr == 'status'.tr
+                                      ? 'amount_da'.tr
+                                      : 'Amount (DA)',
+                                  hint: '0.00',
+                                  icon: Icons.monetization_on_outlined,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  validator: (val) {
+                                    return validInput(val!, 1000, 1, "number");
+                                  },
+                                ),
+                            ],
+                          );
+                        }),
                       ],
                     ),
                   ),

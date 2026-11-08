@@ -17,7 +17,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: ^3.10.4
@@ -85,6 +85,7 @@ dependencies:
   excel: ^4.0.6
   arabic_reshaper: ^0.0.1
   sqflite_common_ffi_web: ^1.1.1
+  flutter_secure_storage: ^10.3.4
 
 
 dev_dependencies:
@@ -98,6 +99,14 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+# sqlite3: don't download the library from GitHub during the build.
+# Android/iOS use the sqflite plugin (system SQLite) and the web uses
+# web/sqlite3.wasm, so the downloaded library isn't needed.
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

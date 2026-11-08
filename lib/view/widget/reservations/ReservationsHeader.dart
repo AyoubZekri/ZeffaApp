@@ -100,26 +100,27 @@ class ReservationsHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              ElevatedButton.icon(
-                onPressed: onAddReservation,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(
-                  'add_reservation'.tr,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primaryPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 21,
+              if (onAddReservation != null)
+                ElevatedButton.icon(
+                  onPressed: onAddReservation,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(
+                    'add_reservation'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primaryPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 21,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
                 ),
-              ),
             ],
           ),
         ),
@@ -177,23 +178,24 @@ class ReservationsHeader extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            InkWell(
-              onTap: onAddReservation,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColor.primaryPurple,
-                  borderRadius: BorderRadius.circular(12),
+            if (onAddReservation != null) ...[
+              const SizedBox(width: 12),
+              InkWell(
+                onTap: onAddReservation,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColor.primaryPurple,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Colors.white),
                 ),
-                child: const Icon(Icons.add_rounded, color: Colors.white),
               ),
-            ),
+            ],
           ],
         ),
       ],
     );
   }
-
 }

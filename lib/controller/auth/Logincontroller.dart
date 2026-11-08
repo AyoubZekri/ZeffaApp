@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:zeffa/core/class/Statusrequest.dart';
 import 'package:zeffa/core/constant/routes.dart';
@@ -21,6 +22,45 @@ class Logincontroller extends GetxController {
   late TextEditingController Email;
   late TextEditingController Password;
   bool issobscureText = true;
+
+  // "Remember me": email + password kept in secure storage
+  // (Keystore / Windows Credential Manager / encrypted browser storage)
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  bool rememberMe = false;
+
+  void toggleRememberMe(bool? value) {
+    rememberMe = value ?? false;
+    update();
+  }
+
+  Future<void> _loadRememberedLogin() async {
+    try {
+      final email = await _secureStorage.read(key: "remember_email");
+      final password = await _secureStorage.read(key: "remember_password");
+      if (email != null && password != null) {
+        Email.text = email;
+        Password.text = password;
+        rememberMe = true;
+        update();
+      }
+    } catch (e) {
+      print("remember me read error: $e");
+    }
+  }
+
+  Future<void> _saveRememberedLogin() async {
+    try {
+      if (rememberMe) {
+        await _secureStorage.write(key: "remember_email", value: Email.text.trim());
+        await _secureStorage.write(key: "remember_password", value: Password.text);
+      } else {
+        await _secureStorage.delete(key: "remember_email");
+        await _secureStorage.delete(key: "remember_password");
+      }
+    } catch (e) {
+      print("remember me save error: $e");
+    }
+  }
   showPassword() {
     issobscureText = issobscureText == true ? false : true;
     update();
@@ -51,6 +91,8 @@ class Logincontroller extends GetxController {
       print("=============================== Controller $response ");
       if (statusrequest == Statusrequest.success) {
         if (response["status"] == 1) {
+          // Correct email / password → remember them (or forget them)
+          await _saveRememberedLogin();
           print(response["data"]["user"]["token"]);
           myServices.sharedPreferences!.setInt(
             "id",
@@ -299,6 +341,7 @@ class Logincontroller extends GetxController {
 
     Email = TextEditingController();
     Password = TextEditingController();
+    _loadRememberedLogin();
     // getUser();
     super.onInit();
   }

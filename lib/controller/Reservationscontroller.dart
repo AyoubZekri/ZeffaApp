@@ -45,7 +45,8 @@ class Reservationscontroller extends GetxController {
   List<ReservationModel> get filteredReservations {
     return allReservations.where((res) {
       // 0. Hall
-      if (hallFilter.value != null && (res.hallUuid ?? '') != hallFilter.value) {
+      if (hallFilter.value != null &&
+          (res.hallUuid ?? '') != hallFilter.value) {
         return false;
       }
 
@@ -120,9 +121,11 @@ class Reservationscontroller extends GetxController {
       sheetObject.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
       for (var res in filteredReservations) {
-        String periodStr = res.bookingPeriod == 3 
-            ? 'period_evening'.tr 
-            : (res.bookingPeriod == 4 ? 'period_morning'.tr : 'period_full_day'.tr);
+        String periodStr = res.bookingPeriod == 3
+            ? 'period_evening'.tr
+            : (res.bookingPeriod == 4
+                  ? 'period_morning'.tr
+                  : 'period_full_day'.tr);
 
         sheetObject.appendRow([
           TextCellValue(res.bookingDate),
@@ -599,16 +602,31 @@ class Reservationscontroller extends GetxController {
               'type': e['type'],
               'description': (e['description'] ?? '').toString().trim(),
               'value': ((e['value'] as num?) ?? 0).toDouble(),
+              if (e['workers_count'] != null)
+                'workers_count': e['workers_count'],
+              if (e['female_workers_count'] != null)
+                'female_workers_count': e['female_workers_count'],
+              if (e['worker_price'] != null)
+                'worker_price': ((e['worker_price'] as num?) ?? 0).toDouble(),
+              if (e['female_worker_price'] != null)
+                'female_worker_price': ((e['female_worker_price'] as num?) ?? 0)
+                    .toDouble(),
             },
           )
           .toList(),
     );
   }
 
+  /// Event type of the reservation being edited (for worker prices)
+  PartyTypeModel? get currentPartyType =>
+      dbPartyTypes.firstWhereOrNull((p) => p.uuid == typeOfPartyUuid);
+
   /// Called when the event type changes in a new reservation:
   /// offers the expenses saved last time for this type.
   Future<void> suggestSavedExpenses() async {
-    final party = dbPartyTypes.firstWhereOrNull((p) => p.uuid == typeOfPartyUuid);
+    final party = dbPartyTypes.firstWhereOrNull(
+      (p) => p.uuid == typeOfPartyUuid,
+    );
     final saved = party?.defaultExpenses;
     if (saved == null || saved.isEmpty) return;
     if (_expensesSignature(reservationExpenses) == _expensesSignature(saved)) {
@@ -635,6 +653,10 @@ class Reservationscontroller extends GetxController {
             'type': e['type'],
             'description': e['description'],
             'value': ((e['value'] as num?) ?? 0).toDouble(),
+            'workers_count': e['workers_count'],
+            'female_workers_count': e['female_workers_count'],
+            'worker_price': e['worker_price'],
+            'female_worker_price': e['female_worker_price'],
           },
         ),
       );
@@ -648,7 +670,10 @@ class Reservationscontroller extends GetxController {
     List<Map<String, dynamic>> expenses,
   ) async {
     final existing = await expensesData.viewByReservation(reservationUuid);
-    final keptUuids = expenses.map((e) => e['uuid']).whereType<String>().toSet();
+    final keptUuids = expenses
+        .map((e) => e['uuid'])
+        .whereType<String>()
+        .toSet();
 
     for (final old in existing) {
       if (!keptUuids.contains(old['uuid'])) {
@@ -668,6 +693,10 @@ class Reservationscontroller extends GetxController {
           value,
           bookingDate,
           reservationUuid: reservationUuid,
+          workersCount: (e['workers_count'] as num?)?.toInt(),
+          femaleWorkersCount: (e['female_workers_count'] as num?)?.toInt(),
+          workerPrice: (e['worker_price'] as num?)?.toDouble(),
+          femaleWorkerPrice: (e['female_worker_price'] as num?)?.toDouble(),
         );
       } else {
         await expensesData.Adddata(
@@ -676,6 +705,10 @@ class Reservationscontroller extends GetxController {
           value,
           bookingDate,
           reservationUuid: reservationUuid,
+          workersCount: (e['workers_count'] as num?)?.toInt(),
+          femaleWorkersCount: (e['female_workers_count'] as num?)?.toInt(),
+          workerPrice: (e['worker_price'] as num?)?.toDouble(),
+          femaleWorkerPrice: (e['female_worker_price'] as num?)?.toDouble(),
         );
       }
     }
@@ -690,7 +723,8 @@ class Reservationscontroller extends GetxController {
     if (partyUuid == null || expenses.isEmpty) return;
     final party = dbPartyTypes.firstWhereOrNull((p) => p.uuid == partyUuid);
     if (party == null) return;
-    if (_expensesSignature(expenses) == _expensesSignature(party.defaultExpenses)) {
+    if (_expensesSignature(expenses) ==
+        _expensesSignature(party.defaultExpenses)) {
       return;
     }
 
@@ -770,7 +804,9 @@ class Reservationscontroller extends GetxController {
     };
 
     final String newUuid = const Uuid().v4();
-    final expenses = reservationExpenses.map((e) => Map<String, dynamic>.from(e)).toList();
+    final expenses = reservationExpenses
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
     final String? partyUuid = typeOfPartyUuid;
 
     bool success = await resData.Adddata(
@@ -834,6 +870,10 @@ class Reservationscontroller extends GetxController {
           'type': e['type'],
           'description': e['description'],
           'value': ((e['value'] as num?) ?? 0).toDouble(),
+          'workers_count': e['workers_count'],
+          'female_workers_count': e['female_workers_count'],
+          'worker_price': e['worker_price'],
+          'female_worker_price': e['female_worker_price'],
         },
       ),
     );
@@ -886,7 +926,9 @@ class Reservationscontroller extends GetxController {
       "notes": note.text,
     };
 
-    final expenses = reservationExpenses.map((e) => Map<String, dynamic>.from(e)).toList();
+    final expenses = reservationExpenses
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
     final String? partyUuid = typeOfPartyUuid;
 
     bool success = await resData.Updatedata(
@@ -956,21 +998,27 @@ class Reservationscontroller extends GetxController {
     final res = allReservations.firstWhereOrNull((r) => r.uuid == uuid);
     if (res == null) return 0.0;
 
-    final selectedParty = dbPartyTypes.firstWhereOrNull((p) => p.uuid == res.typeOfPartyUuid);
-    double baseCustomPrice = res.price; 
+    final selectedParty = dbPartyTypes.firstWhereOrNull(
+      (p) => p.uuid == res.typeOfPartyUuid,
+    );
+    double baseCustomPrice = res.price;
     double newExtraPrice = 0.0;
-    
-    if (selectedParty != null && selectedParty.guestPricingTiers != null && selectedParty.guestPricingTiers!.isNotEmpty) {
+
+    if (selectedParty != null &&
+        selectedParty.guestPricingTiers != null &&
+        selectedParty.guestPricingTiers!.isNotEmpty) {
       try {
         Map<String, dynamic> pricingData = {};
         if (selectedParty.guestPricingTiers!.length == 1) {
-           pricingData = selectedParty.guestPricingTiers![0];
+          pricingData = selectedParty.guestPricingTiers![0];
         } else if (selectedParty.guestPricingTiers!.isNotEmpty) {
-           pricingData = selectedParty.guestPricingTiers![0];
+          pricingData = selectedParty.guestPricingTiers![0];
         }
-        final maxNormal = (pricingData['max_normal_guests'] as num?)?.toInt() ?? 0;
+        final maxNormal =
+            (pricingData['max_normal_guests'] as num?)?.toInt() ?? 0;
         final block = (pricingData['extra_guests_block'] as num?)?.toInt() ?? 0;
-        final blockPrice = (pricingData['extra_guests_price'] as num?)?.toDouble() ?? 0.0;
+        final blockPrice =
+            (pricingData['extra_guests_price'] as num?)?.toDouble() ?? 0.0;
 
         if (maxNormal > 0 && block > 0) {
           // 1. Remove old extra guests cost from saved price
@@ -991,7 +1039,7 @@ class Reservationscontroller extends GetxController {
           }
         }
       } catch (e) {
-          print("Error calculating extra guests price: $e");
+        print("Error calculating extra guests price: $e");
       }
     }
 
@@ -1009,7 +1057,12 @@ class Reservationscontroller extends GetxController {
   }
 
   /// Update guest count
-  Future<void> updateGuestCount(String uuid, int men, int women, double newPrice) async {
+  Future<void> updateGuestCount(
+    String uuid,
+    int men,
+    int women,
+    double newPrice,
+  ) async {
     final res = allReservations.firstWhereOrNull((r) => r.uuid == uuid);
     if (res == null) return;
 

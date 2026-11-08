@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -340,7 +341,7 @@ class ExpensesTable extends StatelessWidget {
           SizedBox(
             width: 150,
             child: Text(
-              "${item.value?.toInt() ?? '0'} $currencyStr",
+              "${formatMoney(item.value)} $currencyStr",
               style: TextStyle(
                 color: textColor,
                 fontWeight: FontWeight.bold,
@@ -461,7 +462,7 @@ class ExpensesTable extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    "${item.value?.toInt() ?? '0'} $currencyStr",
+                    "${formatMoney(item.value)} $currencyStr",
                     style: TextStyle(
                       color: textColor,
                       fontWeight: FontWeight.w900,

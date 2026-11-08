@@ -3,6 +3,11 @@ class ExpenseModel {
   final String? uuid;
   final int? userId;
   final String? reservationUuid; // Linked reservation (wedding), optional
+  // Workers expense by count: value = count × price per person
+  final int? workersCount;
+  final int? femaleWorkersCount;
+  final double? workerPrice;
+  final double? femaleWorkerPrice;
   final int? type; // 1: maintenance workers, 2: cleaning materials, 3: other expenses
   final String? description; // Expense name
   final double? value; // Amount
@@ -15,6 +20,10 @@ class ExpenseModel {
     this.uuid,
     this.userId,
     this.reservationUuid,
+    this.workersCount,
+    this.femaleWorkersCount,
+    this.workerPrice,
+    this.femaleWorkerPrice,
     this.type,
     this.description,
     this.value,
@@ -29,6 +38,10 @@ class ExpenseModel {
       uuid: json['uuid'],
       userId: json['user_id'],
       reservationUuid: json['reservation_uuid'],
+      workersCount: (json['workers_count'] as num?)?.toInt(),
+      femaleWorkersCount: (json['female_workers_count'] as num?)?.toInt(),
+      workerPrice: json['worker_price'] != null ? (json['worker_price'] as num).toDouble() : null,
+      femaleWorkerPrice: json['female_worker_price'] != null ? (json['female_worker_price'] as num).toDouble() : null,
       type: json['type'],
       description: json['description'],
       value: json['value'] != null ? (json['value'] as num).toDouble() : null,
@@ -44,6 +57,10 @@ class ExpenseModel {
       'uuid': uuid,
       'user_id': userId,
       'reservation_uuid': reservationUuid,
+      'workers_count': workersCount,
+      'female_workers_count': femaleWorkersCount,
+      'worker_price': workerPrice,
+      'female_worker_price': femaleWorkerPrice,
       'type': type,
       'description': description,
       'value': value,

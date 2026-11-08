@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controller/ExpensesController.dart';
@@ -114,13 +115,21 @@ class ExpensesScreen extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      "${value.toInt()} $currencyStr",
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                        color: valueColor ?? textColor,
-                                        fontFamily: 'Cairo',
+                                    // One line: the amount shrinks to fit instead of wrapping
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment:
+                                          AlignmentDirectional.centerStart,
+                                      child: Text(
+                                        "${formatMoney(value)} $currencyStr",
+                                        maxLines: 1,
+                                        softWrap: false,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: valueColor ?? textColor,
+                                          fontFamily: 'Cairo',
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 4),

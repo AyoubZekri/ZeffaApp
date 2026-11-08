@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -12,6 +13,9 @@ class EventTypesController extends GetxController {
   late TextEditingController typeDesc;
   late TextEditingController typePrice;
   late TextEditingController typeSeasonalPrice;
+  // Per-person worker prices (optional)
+  late TextEditingController typeWorkerPrice;
+  late TextEditingController typeFemaleWorkerPrice;
   var selectedIcon = Icons.favorite_rounded.obs;
 
   // Block pricing fields
@@ -24,6 +28,8 @@ class EventTypesController extends GetxController {
   late TextEditingController editTypeDesc;
   late TextEditingController editTypePrice;
   late TextEditingController editTypeSeasonalPrice;
+  late TextEditingController editTypeWorkerPrice;
+  late TextEditingController editTypeFemaleWorkerPrice;
   var editSelectedIcon = Icons.favorite_rounded.obs;
 
   GlobalKey<FormState> formState = GlobalKey<FormState>();
@@ -53,6 +59,8 @@ class EventTypesController extends GetxController {
     typeDesc = TextEditingController();
     typePrice = TextEditingController();
     typeSeasonalPrice = TextEditingController();
+    typeWorkerPrice = TextEditingController();
+    typeFemaleWorkerPrice = TextEditingController();
 
     maxNormalGuests = TextEditingController();
     extraGuestsBlock = TextEditingController();
@@ -62,6 +70,8 @@ class EventTypesController extends GetxController {
     editTypeDesc = TextEditingController();
     editTypePrice = TextEditingController();
     editTypeSeasonalPrice = TextEditingController();
+    editTypeWorkerPrice = TextEditingController();
+    editTypeFemaleWorkerPrice = TextEditingController();
 
     loadEventTypes();
     super.onInit();
@@ -73,6 +83,8 @@ class EventTypesController extends GetxController {
     typeDesc.dispose();
     typePrice.dispose();
     typeSeasonalPrice.dispose();
+    typeWorkerPrice.dispose();
+    typeFemaleWorkerPrice.dispose();
     maxNormalGuests.dispose();
     extraGuestsBlock.dispose();
     extraGuestsPrice.dispose();
@@ -80,6 +92,8 @@ class EventTypesController extends GetxController {
     editTypeDesc.dispose();
     editTypePrice.dispose();
     editTypeSeasonalPrice.dispose();
+    editTypeWorkerPrice.dispose();
+    editTypeFemaleWorkerPrice.dispose();
     super.onClose();
   }
 
@@ -122,6 +136,8 @@ class EventTypesController extends GetxController {
               item.seasonalPrice?.toString() ?? '0',
             ),
             'guestPricingTiers': item.guestPricingTiers,
+            'workerPrice': item.workerPrice,
+            'femaleWorkerPrice': item.femaleWorkerPrice,
             'icon': icon,
             'iconBgColor': doubleColor.withOpacity(0.12),
             'iconColor': doubleColor,
@@ -138,12 +154,26 @@ class EventTypesController extends GetxController {
     update();
   }
 
+  /// Empty → null (no price set)
+  double? _optionalPrice(String text) {
+    final clean = text.replaceAll(RegExp(r'[^0-9.]'), '');
+    return clean.isEmpty ? null : double.tryParse(clean);
+  }
+
+  String _plainPrice(dynamic value) {
+    if (value == null) return '';
+    final v = (value as num).toDouble();
+    return v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+  }
+
   // Clear fields after add
   void clearFields() {
     typeName.clear();
     typeDesc.clear();
     typePrice.clear();
     typeSeasonalPrice.clear();
+    typeWorkerPrice.clear();
+    typeFemaleWorkerPrice.clear();
     maxNormalGuests.clear();
     extraGuestsBlock.clear();
     extraGuestsPrice.clear();
@@ -168,14 +198,20 @@ class EventTypesController extends GetxController {
     String? guestPricingTiersStr;
     final int maxGuests = int.tryParse(maxNormalGuests.text) ?? 0;
     final int extraBlock = int.tryParse(extraGuestsBlock.text) ?? 0;
-    final double extraPrice = double.tryParse(extraGuestsPrice.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+    final double extraPrice =
+        double.tryParse(
+          extraGuestsPrice.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+        0.0;
 
     if (maxGuests > 0 && extraBlock > 0 && extraPrice > 0) {
-      guestPricingTiersStr = jsonEncode([{
-        "max_normal_guests": maxGuests,
-        "extra_guests_block": extraBlock,
-        "extra_guests_price": extraPrice
-      }]);
+      guestPricingTiersStr = jsonEncode([
+        {
+          "max_normal_guests": maxGuests,
+          "extra_guests_block": extraBlock,
+          "extra_guests_price": extraPrice,
+        },
+      ]);
     }
 
     final success = await partyTypesRepo.Adddata(
@@ -185,6 +221,8 @@ class EventTypesController extends GetxController {
       doubleSeasonalPrice,
       guestPricingTiersStr,
       selectedIcon.value.codePoint.toString(),
+      workerPrice: _optionalPrice(typeWorkerPrice.text),
+      femaleWorkerPrice: _optionalPrice(typeFemaleWorkerPrice.text),
     );
 
     if (success) {
@@ -204,20 +242,26 @@ class EventTypesController extends GetxController {
     editTypeDesc.text = item['descKey'] != ''
         ? item['descKey'].toString().tr
         : item['descCustom'].toString();
-    editTypePrice.text = item['price'].toString().replaceAll(',', '');
-    editTypeSeasonalPrice.text = item['seasonalPrice'].toString().replaceAll(
-      ',',
-      '',
-    );
-    
+    editTypePrice.text = item['price']
+        .toString()
+        .replaceAll(',', '')
+        .replaceAll(RegExp(r'\.00$'), '');
+    editTypeSeasonalPrice.text = item['seasonalPrice']
+        .toString()
+        .replaceAll(',', '')
+        .replaceAll(RegExp(r'\.00$'), '');
+    editTypeWorkerPrice.text = _plainPrice(item['workerPrice']);
+    editTypeFemaleWorkerPrice.text = _plainPrice(item['femaleWorkerPrice']);
+
     // Load tiers (now block-based)
     maxNormalGuests.clear();
     extraGuestsBlock.clear();
     extraGuestsPrice.clear();
-    
+
     if (item['guestPricingTiers'] != null) {
       dynamic blockData;
-      if (item['guestPricingTiers'] is String && item['guestPricingTiers'].toString().isNotEmpty) {
+      if (item['guestPricingTiers'] is String &&
+          item['guestPricingTiers'].toString().isNotEmpty) {
         try {
           final decoded = jsonDecode(item['guestPricingTiers']);
           if (decoded is List && decoded.isNotEmpty) {
@@ -228,7 +272,8 @@ class EventTypesController extends GetxController {
         } catch (e) {
           print("Error decoding guestPricingTiers: $e");
         }
-      } else if (item['guestPricingTiers'] is List && (item['guestPricingTiers'] as List).isNotEmpty) {
+      } else if (item['guestPricingTiers'] is List &&
+          (item['guestPricingTiers'] as List).isNotEmpty) {
         blockData = item['guestPricingTiers'][0];
       } else if (item['guestPricingTiers'] is Map) {
         blockData = item['guestPricingTiers'];
@@ -236,8 +281,10 @@ class EventTypesController extends GetxController {
 
       if (blockData != null && blockData is Map) {
         maxNormalGuests.text = blockData['max_normal_guests']?.toString() ?? '';
-        extraGuestsBlock.text = blockData['extra_guests_block']?.toString() ?? '';
-        extraGuestsPrice.text = blockData['extra_guests_price']?.toString() ?? '';
+        extraGuestsBlock.text =
+            blockData['extra_guests_block']?.toString() ?? '';
+        extraGuestsPrice.text =
+            blockData['extra_guests_price']?.toString() ?? '';
       }
     }
 
@@ -258,14 +305,20 @@ class EventTypesController extends GetxController {
     String? guestPricingTiersStr;
     final int maxGuests = int.tryParse(maxNormalGuests.text) ?? 0;
     final int extraBlock = int.tryParse(extraGuestsBlock.text) ?? 0;
-    final double extraPrice = double.tryParse(extraGuestsPrice.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+    final double extraPrice =
+        double.tryParse(
+          extraGuestsPrice.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+        0.0;
 
     if (maxGuests > 0 && extraBlock > 0 && extraPrice > 0) {
-      guestPricingTiersStr = jsonEncode([{
-        "max_normal_guests": maxGuests,
-        "extra_guests_block": extraBlock,
-        "extra_guests_price": extraPrice
-      }]);
+      guestPricingTiersStr = jsonEncode([
+        {
+          "max_normal_guests": maxGuests,
+          "extra_guests_block": extraBlock,
+          "extra_guests_price": extraPrice,
+        },
+      ]);
     }
 
     final success = await partyTypesRepo.Updatedata(
@@ -276,6 +329,8 @@ class EventTypesController extends GetxController {
       doubleSeasonalPrice,
       guestPricingTiersStr,
       editSelectedIcon.value.codePoint.toString(),
+      workerPrice: _optionalPrice(editTypeWorkerPrice.text),
+      femaleWorkerPrice: _optionalPrice(editTypeFemaleWorkerPrice.text),
     );
 
     if (success) {
@@ -297,7 +352,11 @@ class EventTypesController extends GetxController {
       }
     } catch (e) {
       if (e == 'linked_to_reservation') {
-        showSnackbar("warning".tr, "cannot_delete_linked_item".tr, Colors.orange);
+        showSnackbar(
+          "warning".tr,
+          "cannot_delete_linked_item".tr,
+          Colors.orange,
+        );
       } else {
         showSnackbar("error".tr, "operation_failed".tr, Colors.red);
       }
@@ -317,18 +376,9 @@ class EventTypesController extends GetxController {
   }
 
   // Helper to format price with commas
+  /// Price shown on the card: 25,000.00
   String _formatPrice(String priceStr) {
     final clean = priceStr.replaceAll(RegExp(r'[^0-9.]'), '');
-    if (clean.isEmpty) return '0';
-    final doubleValue = double.tryParse(clean) ?? 0.0;
-    String formatted = doubleValue.toInt().toString();
-    
-    // Add commas to the integer part
-    final parts = formatted.split('.');
-    parts[0] = parts[0].replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    return parts.join('.');
+    return formatMoney(double.tryParse(clean) ?? 0.0);
   }
 }

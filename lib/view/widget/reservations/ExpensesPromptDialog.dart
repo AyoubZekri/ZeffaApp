@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constant/Colorapp.dart';
@@ -183,7 +184,7 @@ class ExpensesPromptDialog extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      "${((e['value'] as num?) ?? 0).toInt()} DA",
+                                      "${formatMoney(e['value'] as num?)} DA",
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -218,7 +219,7 @@ class ExpensesPromptDialog extends StatelessWidget {
                               ),
                               const Spacer(),
                               Text(
-                                "${total.toInt()} DA",
+                                "${formatMoney(total)} DA",
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

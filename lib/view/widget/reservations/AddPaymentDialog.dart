@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constant/Colorapp.dart';
@@ -123,9 +124,9 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
             // Current info row
             Row(
               children: [
-                Expanded(child: _buildInfoCard('reservation_price'.tr, reservationPrice.toInt().toString(), AppColor.primaryPurple, colors)),
+                Expanded(child: _buildInfoCard('reservation_price'.tr, formatMoney(reservationPrice), AppColor.primaryPurple, colors)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildInfoCard('current_deposit'.tr, currentDeposit.toInt().toString(), Colors.green, colors)),
+                Expanded(child: _buildInfoCard('current_deposit'.tr, formatMoney(currentDeposit), Colors.green, colors)),
               ],
             ),
             const SizedBox(height: 20),
@@ -168,9 +169,9 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
                 ),
                 child: Column(
                   children: [
-                    _buildPreviewRow('new_total_deposit'.tr, newTotalDeposit.toInt().toString(), exceedsPrice ? Colors.red : Colors.green),
+                    _buildPreviewRow('new_total_deposit'.tr, formatMoney(newTotalDeposit), exceedsPrice ? Colors.red : Colors.green),
                     const SizedBox(height: 8),
-                    _buildPreviewRow('new_remaining'.tr, exceedsPrice ? '---' : newRemaining.toInt().toString(), textColor),
+                    _buildPreviewRow('new_remaining'.tr, exceedsPrice ? '---' : formatMoney(newRemaining), textColor),
                     if (exceedsPrice) ...[
                       const SizedBox(height: 12),
                       Row(

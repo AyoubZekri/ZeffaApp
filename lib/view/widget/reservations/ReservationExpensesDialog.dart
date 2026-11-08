@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/format_money.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constant/AppTheme.dart';
@@ -244,7 +245,7 @@ class ReservationExpensesDialog extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        "${(e.value ?? 0).toInt()} DA",
+                                        "${formatMoney(e.value)} DA",
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -333,7 +334,7 @@ class ReservationExpensesDialog extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Text(
-          "${value.toInt()} DA",
+          "${formatMoney(value)} DA",
           style: TextStyle(
             fontSize: bold ? 16 : 14,
             fontWeight: FontWeight.bold,

@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/role_permissions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controller/CalendarController.dart';
@@ -27,7 +28,9 @@ class BookingDetailsDialog extends StatelessWidget {
     // Day booked for only one period → the other one can still be reserved
     // (3 = evening booked → morning free, 4 = morning booked → evening free)
     final int? bookedPeriod = event['booking_period'] as int?;
-    final int? freePeriod = bookedPeriod == 3 ? 4 : (bookedPeriod == 4 ? 3 : null);
+    final int? freePeriod = bookedPeriod == 3
+        ? 4
+        : (bookedPeriod == 4 ? 3 : null);
     final String? dayDate = reservations.isNotEmpty
         ? reservations.first['date']?.toString()
         : null;
@@ -100,13 +103,18 @@ class BookingDetailsDialog extends StatelessWidget {
                       if (reservations.isNotEmpty)
                         ...reservations.map((res) {
                           final resId = res['bookingId'] ?? '#---';
-                          final resType = res['title'] ?? res['type_of_party_uuid'] ?? '---';
+                          final resType =
+                              res['title'] ??
+                              res['type_of_party_uuid'] ??
+                              '---';
                           final resName = res['customerName'] ?? '---';
                           final resPhone = res['customerPhone'] ?? '---';
                           final periodKey = res['booking_period'];
-                          final periodStr = periodKey == 3 
-                              ? 'period_evening'.tr 
-                              : (periodKey == 4 ? 'period_morning'.tr : 'period_full_day'.tr);
+                          final periodStr = periodKey == 3
+                              ? 'period_evening'.tr
+                              : (periodKey == 4
+                                    ? 'period_morning'.tr
+                                    : 'period_full_day'.tr);
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -199,7 +207,9 @@ class BookingDetailsDialog extends StatelessWidget {
               const SizedBox(height: 24),
 
               // ── Free period card ──
-              if (freePeriod != null && dayDate != null) ...[
+              if (freePeriod != null &&
+                  dayDate != null &&
+                  hasRolePermission('add_reservation')) ...[
                 _buildFreePeriodCard(
                   context,
                   freePeriod: freePeriod,
@@ -337,9 +347,7 @@ class BookingDetailsDialog extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
 

@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/role_permissions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/class/Statusrequest.dart';
@@ -540,6 +541,7 @@ class CalendarController extends GetxController {
 
   /// Opens the new reservation form with [date] (and optionally [period]) filled in
   Future<void> addReservationForDate(DateTime date, {int? period}) async {
+    if (!hasRolePermission('add_reservation')) return;
     final resCtrl = Get.isRegistered<Reservationscontroller>()
         ? Get.find<Reservationscontroller>()
         : Get.put(Reservationscontroller());

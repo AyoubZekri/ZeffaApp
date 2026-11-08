@@ -47,6 +47,10 @@ class Expenses {
     double value,
     String datePerry, {
     String? reservationUuid,
+    int? workersCount,
+    int? femaleWorkersCount,
+    double? workerPrice,
+    double? femaleWorkerPrice,
   }) async {
     final String uuid = Uuid().v4();
 
@@ -55,6 +59,10 @@ class Expenses {
         "uuid": uuid,
         "user_id": id,
         "reservation_uuid": reservationUuid,
+        "workers_count": workersCount,
+        "female_workers_count": femaleWorkersCount,
+        "worker_price": workerPrice,
+        "female_worker_price": femaleWorkerPrice,
         "type": type,
         "description": description,
         "value": value,
@@ -83,10 +91,18 @@ class Expenses {
     double value,
     String datePerry, {
     String? reservationUuid,
+    int? workersCount,
+    int? femaleWorkersCount,
+    double? workerPrice,
+    double? femaleWorkerPrice,
   }) async {
     try {
       final data = {
         "reservation_uuid": reservationUuid,
+        "workers_count": workersCount,
+        "female_workers_count": femaleWorkersCount,
+        "worker_price": workerPrice,
+        "female_worker_price": femaleWorkerPrice,
         "type": type,
         "description": description,
         "value": value,

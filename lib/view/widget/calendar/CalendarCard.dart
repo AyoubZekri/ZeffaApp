@@ -1,3 +1,4 @@
+import 'package:zeffa/core/functions/role_permissions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -138,14 +139,16 @@ class CalendarCard extends StatelessWidget {
                       ].map((dayName) {
                         final isFriday = dayName == 'friday'.tr;
                         // For mobile, maybe just show first 3 letters
-                        final displayDayName = isMobile && dayName.length > 3 
-                            ? dayName.substring(0, 3) 
+                        final displayDayName = isMobile && dayName.length > 3
+                            ? dayName.substring(0, 3)
                             : dayName;
 
                         return Expanded(
                           child: Center(
                             child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: isMobile ? 4 : 8),
+                              padding: EdgeInsets.symmetric(
+                                vertical: isMobile ? 4 : 8,
+                              ),
                               child: Text(
                                 displayDayName,
                                 style: TextStyle(
@@ -196,10 +199,22 @@ class CalendarCard extends StatelessWidget {
                         // Reserved day → booking details, free day → new reservation
                         onTap: (event != null && event['type'] == 'reserved')
                             ? () => ctrl.showBookingDetails(event)
-                            : () => ctrl.addReservationForDate(currentDate),
+                            : (hasRolePermission('add_reservation')
+                                  ? () =>
+                                        ctrl.addReservationForDate(currentDate)
+                                  : null),
                         borderRadius: BorderRadius.circular(isMobile ? 8 : 12),
                         splashColor: AppColor.primaryPurple.withOpacity(0.1),
-                        child: _buildDayCell(day, isFriday, event, theme, colors, cellPadding, dateFontSize, isMobile),
+                        child: _buildDayCell(
+                          day,
+                          isFriday,
+                          event,
+                          theme,
+                          colors,
+                          cellPadding,
+                          dateFontSize,
+                          isMobile,
+                        ),
                       );
                     }
 
@@ -291,7 +306,10 @@ class CalendarCard extends StatelessWidget {
               onTap: ctrl.toggleMonthsView,
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -500,10 +518,10 @@ class CalendarCard extends StatelessWidget {
                 children: [
                   if (!isMobile) ...[
                     Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: colors.subtitleColor.withValues(alpha: 0.6),
-                    size: 16,
-                  ),
+                      Icons.add_circle_outline_rounded,
+                      color: colors.subtitleColor.withValues(alpha: 0.6),
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                   ],
                   Icon(
@@ -519,10 +537,10 @@ class CalendarCard extends StatelessWidget {
                 children: [
                   if (!isMobile) ...[
                     Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: colors.subtitleColor.withValues(alpha: 0.6),
-                    size: 16,
-                  ),
+                      Icons.add_circle_outline_rounded,
+                      color: colors.subtitleColor.withValues(alpha: 0.6),
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                   ],
                   Icon(
@@ -540,7 +558,11 @@ class CalendarCard extends StatelessWidget {
               ),
           ],
           if (eventType == 'special_day')
-            Icon(Icons.star_rounded, color: Colors.orange, size: isMobile ? 12 : 18),
+            Icon(
+              Icons.star_rounded,
+              color: Colors.orange,
+              size: isMobile ? 12 : 18,
+            ),
           if (eventType == 'special_period')
             Icon(
               Icons.auto_awesome_rounded,

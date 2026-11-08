@@ -18,7 +18,7 @@ class SQLDB {
     }
   }
 
-  int get version => 5;
+  int get version => 6;
 
   Future<Database> intialDb() async {
     if (kIsWeb) {
@@ -49,14 +49,26 @@ class SQLDB {
     return mydb;
   }
 
+  /// Upgrades may run again on a database that already has the change
+  /// (e.g. the version wasn't saved after an interrupted upgrade), so a
+  /// column is added only when it's missing.
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String column,
+    String type,
+  ) async {
+    final cols = await db.rawQuery('PRAGMA table_info($table)');
+    if (cols.any((c) => c['name'] == column)) return;
+    await db.execute("ALTER TABLE $table ADD COLUMN $column $type");
+  }
+
   Future<void> _onUpgrade(Database db, int oldversion, int newVersion) async {
     print("_onUpgrade ===============");
     if (oldversion < 2) {
       // ربط المصاريف بالحجز + المصاريف المحفوظة لكل نوع حفلة
-      await db.execute("ALTER TABLE expenses ADD COLUMN reservation_uuid TEXT");
-      await db.execute(
-        "ALTER TABLE party_types ADD COLUMN default_expenses TEXT",
-      );
+      await _addColumnIfMissing(db, "expenses", "reservation_uuid", "TEXT");
+      await _addColumnIfMissing(db, "party_types", "default_expenses", "TEXT");
     }
     if (oldversion < 3) {
       // القاعات الإضافية + ربط الحجز بالقاعة (فارغ = قاعة الحساب)
@@ -72,17 +84,29 @@ class SQLDB {
         updated_at TEXT
       )
       ''');
-      await db.execute("ALTER TABLE reservations ADD COLUMN hall_uuid TEXT");
+      await _addColumnIfMissing(db, "reservations", "hall_uuid", "TEXT");
     }
     if (oldversion < 4) {
       // موقع القاعة (اختياري)
-      await db.execute("ALTER TABLE halls ADD COLUMN address TEXT");
+      await _addColumnIfMissing(db, "halls", "address", "TEXT");
     }
     if (oldversion < 5) {
       // طريقة حساب سعر الخدمة: 0 = ثابت، 1 = لكل شخص
-      await db.execute(
-        "ALTER TABLE additional_services ADD COLUMN price_type INTEGER DEFAULT 0",
+      await _addColumnIfMissing(
+        db,
+        "additional_services",
+        "price_type",
+        "INTEGER DEFAULT 0",
       );
+    }
+    if (oldversion < 6) {
+      // سعر العامل / العاملة للفرد حسب نوع الحفل + عددهم في مصروف العمال
+      await _addColumnIfMissing(db, "party_types", "worker_price", "REAL");
+      await _addColumnIfMissing(db, "party_types", "female_worker_price", "REAL");
+      await _addColumnIfMissing(db, "expenses", "workers_count", "INTEGER");
+      await _addColumnIfMissing(db, "expenses", "female_workers_count", "INTEGER");
+      await _addColumnIfMissing(db, "expenses", "worker_price", "REAL");
+      await _addColumnIfMissing(db, "expenses", "female_worker_price", "REAL");
     }
   }
 
@@ -104,6 +128,8 @@ class SQLDB {
         guest_pricing_tiers TEXT,
         icon TEXT,
         default_expenses TEXT,
+        worker_price REAL,
+        female_worker_price REAL,
         created_at TEXT,
         updated_at TEXT
       )
@@ -257,6 +283,10 @@ class SQLDB {
         uuid TEXT UNIQUE,
         user_id INTEGER,
         reservation_uuid TEXT,
+        workers_count INTEGER,
+        female_workers_count INTEGER,
+        worker_price REAL,
+        female_worker_price REAL,
         type INTEGER,
         description TEXT,
         value REAL,
