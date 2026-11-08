@@ -3,7 +3,17 @@
 # sqlite3.wasm must be served as WebAssembly, or the browser database won't load
 AddType application/wasm .wasm
 
-# Always fetch the entry files, so users get a new upload right away
-<FilesMatch "^(index\.html|flutter_service_worker\.js|flutter_bootstrap\.js|manifest\.json)$">
-  Header set Cache-Control "no-cache, no-store, must-revalidate"
+# Hostinger's LiteSpeed server cache: off, so a new upload shows right away
+<IfModule LiteSpeed>
+  CacheDisable public /
+</IfModule>
+
+# Always re-check the files that change with every build (same names each
+# build, so the browser would otherwise keep the old version)
+<FilesMatch "^(index\.html|main\.dart\.js|flutter_service_worker\.js|flutter_bootstrap\.js|flutter\.js|version\.json|manifest\.json|AssetManifest.*|FontManifest\.json|NOTICES)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
 </FilesMatch>

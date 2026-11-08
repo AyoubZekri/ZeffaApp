@@ -588,16 +588,14 @@ class ExpensesTable extends StatelessWidget {
               enabled: currentPage > 1,
               onTap: () => onPageChanged(currentPage - 1),
             ),
-            ...List.generate(totalPages, (index) {
-              final pageNum = index + 1;
-              return _buildPageItem(
-                context,
-                pageNum.toString(),
-                pageNum == currentPage,
-                enabled: true,
-                onTap: () => onPageChanged(pageNum),
-              );
-            }),
+            // One box with the current page number (not one box per page)
+            _buildPageItem(
+              context,
+              currentPage.toString(),
+              true,
+              enabled: true,
+              onTap: () {},
+            ),
             _buildPageItem(
               context,
               isArabic ? '<' : '>',
